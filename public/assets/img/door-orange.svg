@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Outer Door Frame -->
+  <rect x="6" y="5" width="36" height="38" rx="2" stroke="#F58220" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Open Door Perspective Leaf -->
+  <path d="M12 9L28 6V42L12 39V9Z" fill="#F58220" fill-opacity="0.1" stroke="#F58220" stroke-width="4" stroke-linejoin="round"/>
+  <!-- Door Knob -->
+  <circle cx="23" cy="24" r="2.5" fill="#F58220"/>
+  <!-- Door Floor Threshold -->
+  <line x1="4" y1="43" x2="44" y2="43" stroke="#F58220" stroke-width="4" stroke-linecap="round"/>
+</svg>

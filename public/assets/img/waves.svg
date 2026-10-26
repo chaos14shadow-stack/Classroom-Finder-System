@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 450" fill="none">
+  <defs>
+    <linearGradient id="waveGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4E75FF" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#A855F7" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#06B6D4" stop-opacity="0.8"/>
+    </linearGradient>
+    <linearGradient id="waveGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#C084FC" stop-opacity="0.7"/>
+      <stop offset="50%" stop-color="#38BDF8" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#818CF8" stop-opacity="0.7"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Curving multi-ribbon lines creating the 3D harmonic wave effect -->
+  <g filter="url(#glow)">
+    <path d="M 50,40 C 150,140 280,30 380,180 C 440,270 480,120 520,60" stroke="url(#waveGrad1)" stroke-width="2.5" fill="none" opacity="0.85"/>
+    <path d="M 60,55 C 160,155 285,45 385,195 C 445,285 485,135 525,75" stroke="url(#waveGrad1)" stroke-width="2.2" fill="none" opacity="0.8"/>
+    <path d="M 70,70 C 170,170 290,60 390,210 C 450,300 490,150 530,90" stroke="url(#waveGrad2)" stroke-width="2.2" fill="none" opacity="0.75"/>
+    <path d="M 80,85 C 180,185 295,75 395,225 C 455,315 495,165 535,105" stroke="url(#waveGrad1)" stroke-width="2.0" fill="none" opacity="0.7"/>
+    <path d="M 90,100 C 190,200 300,90 400,240 C 460,330 500,180 540,120" stroke="url(#waveGrad2)" stroke-width="2.0" fill="none" opacity="0.65"/>
+    <path d="M 100,115 C 200,215 305,105 405,255 C 465,345 505,195 545,135" stroke="url(#waveGrad1)" stroke-width="1.8" fill="none" opacity="0.6"/>
+    <path d="M 110,130 C 210,230 310,120 410,270 C 470,360 510,210 550,150" stroke="url(#waveGrad2)" stroke-width="1.8" fill="none" opacity="0.55"/>
+    <path d="M 120,145 C 220,245 315,135 415,285 C 475,375 515,225 555,165" stroke="url(#waveGrad1)" stroke-width="1.6" fill="none" opacity="0.5"/>
+    <path d="M 130,160 C 230,260 320,150 420,300 C 480,390 520,240 560,180" stroke="url(#waveGrad2)" stroke-width="1.5" fill="none" opacity="0.45"/>
+    <path d="M 140,175 C 240,275 325,165 425,315 C 485,405 525,255 565,195" stroke="url(#waveGrad1)" stroke-width="1.5" fill="none" opacity="0.4"/>
+    <path d="M 150,190 C 250,290 330,180 430,330 C 490,420 530,270 570,210" stroke="url(#waveGrad2)" stroke-width="1.4" fill="none" opacity="0.35"/>
+  </g>
+</svg>

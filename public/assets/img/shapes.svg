@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" fill="none">
+  <defs>
+    <linearGradient id="polyGrad1" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0E1B4D" stop-opacity="0.8"/>
+      <stop offset="60%" stop-color="#223C7A" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="polyGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#14285D" stop-opacity="0.85"/>
+      <stop offset="70%" stop-color="#2D549E" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#4F46E5" stop-opacity="0.3"/>
+    </linearGradient>
+  </defs>
+  <!-- Angled parallelograms and geometric planes -->
+  <polygon points="-50,450 350,220 520,310 120,540" fill="url(#polyGrad1)"/>
+  <polygon points="-80,380 240,240 380,330 60,470" fill="url(#polyGrad2)"/>
+  <polygon points="-30,300 180,180 260,230 50,350" fill="url(#polyGrad1)" opacity="0.6"/>
+  <!-- Highlight neon edge lines -->
+  <line x1="-50" y1="450" x2="350" y2="220" stroke="#38BDF8" stroke-width="2.5" opacity="0.6"/>
+  <line x1="-80" y1="380" x2="240" y2="240" stroke="#818CF8" stroke-width="2" opacity="0.5"/>
+  <line x1="220" y1="360" x2="480" y2="200" stroke="#34D399" stroke-width="2" stroke-dasharray="8 6" opacity="0.4"/>
+</svg>

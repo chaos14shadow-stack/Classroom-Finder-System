@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <circle cx="32" cy="32" r="29" stroke="#FFFFFF" stroke-width="2" stroke-dasharray="2 2" opacity="0.8"/>
+  <circle cx="32" cy="32" r="26" stroke="#FFFFFF" stroke-width="1.5" opacity="0.9"/>
+  <circle cx="32" cy="32" r="22" fill="#1C2758" stroke="#F58220" stroke-width="1.5"/>
+  <!-- Cross and radiating rays -->
+  <path d="M32 14V34M24 22H40" stroke="#F58220" stroke-width="2.2" stroke-linecap="round"/>
+  <!-- Open Book at base -->
+  <path d="M21 44C25 42 29 42 32 44C35 42 39 42 43 44V36C39 34 35 34 32 36C29 34 25 34 21 36V44Z" fill="#FFFFFF" fill-opacity="0.9"/>
+  <!-- Small Star at top -->
+  <polygon points="32,12 33,14 35,14 33.5,15.5 34,17.5 32,16 30,17.5 30.5,15.5 29,14 31,14" fill="#F58220"/>
+</svg>
