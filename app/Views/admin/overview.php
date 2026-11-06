@@ -17,6 +17,7 @@
     <div class="portal-topbar">
       <div class="portal-title-group">
         <h1>Overview</h1>
+        <p class="subtitle">Campus administration dashboard and real-time activity metrics</p>
       </div>
       <a href="<?= base_url('admin/overview') ?>" title="Home" style="color: var(--cpc-orange); font-size: 1.5rem;">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
@@ -25,34 +26,49 @@
       </a>
     </div>
 
-    <!-- 4 Statistics Cards matching Image 4 middle -->
+    <?php if (session()->getFlashdata('success')): ?>
+      <div class="alert alert-success" style="background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #86efac; font-size: 0.9rem; padding: 12px 18px; border-radius: 10px; margin-bottom: 20px;">
+        ✅ <?= esc(session()->getFlashdata('success')) ?>
+      </div>
+    <?php endif; ?>
+
+    <?php if (session()->getFlashdata('error')): ?>
+      <div class="alert alert-danger" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; font-size: 0.9rem; padding: 12px 18px; border-radius: 10px; margin-bottom: 20px;">
+        ⚠️ <?= esc(session()->getFlashdata('error')) ?>
+      </div>
+    <?php endif; ?>
+
+    <!-- 4 Statistics Cards -->
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">Total Rooms</div>
-        <div class="stat-value">3</div>
+        <div class="stat-value"><?= esc($totalRooms) ?></div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Total Users</div>
-        <div class="stat-value">10</div>
+        <div class="stat-label">Total Active Users</div>
+        <div class="stat-value"><?= esc($totalUsers) ?></div>
       </div>
 
       <div class="stat-card">
         <div class="stat-label">Bookings Today</div>
-        <div class="stat-value">1</div>
+        <div class="stat-value"><?= esc($bookingsToday) ?></div>
       </div>
 
       <div class="stat-card highlight-orange">
         <div class="stat-label" style="color: #ffffff;">Pending Approvals</div>
-        <div class="stat-value">1</div>
+        <div class="stat-value"><?= esc($pendingApprovals) ?></div>
       </div>
     </div>
 
     <!-- Pinned Announcement Banner matching screenshot -->
-    <div class="pinned-banner">
-      <div class="banner-tag">Pinned announcement</div>
-      <p>Room DABBA will be closed for repairs from Sept 8 – 15. Please avoid booking it during this period.</p>
-    </div>
+    <?php if (!empty($pinnedAnnouncement)): ?>
+      <div class="pinned-banner">
+        <div class="banner-tag">Pinned announcement</div>
+        <p style="font-weight: 700; font-size: 1.05rem; margin-bottom: 4px;"><?= esc($pinnedAnnouncement['title']) ?></p>
+        <p style="margin: 0; font-size: 0.92rem; line-height: 1.5;"><?= esc($pinnedAnnouncement['message']) ?></p>
+      </div>
+    <?php endif; ?>
 
     <!-- Recent Bookings Section -->
     <div style="margin-top: 10px;">
@@ -71,73 +87,70 @@
             </tr>
           </thead>
           <tbody>
-            <!-- Row 1: Room 224 Pending with Approve/Reject buttons -->
-            <tr id="row-booking-224">
-              <td style="font-weight: 700; font-size: 1rem;">Room 224</td>
-              <td style="color: #cbd5e1;">J. Doe</td>
-              <td style="color: #cbd5e1;">9 - 12 PM</td>
-              <td style="color: #cbd5e1;">Sep 9</td>
-              <td>
-                <span class="status-pill" id="status-pill-224">
-                  <span class="status-dot dot-pending"></span>
-                  <span>Pending</span>
-                </span>
-              </td>
-              <td style="text-align: right;">
-                <div style="display: inline-flex; gap: 8px;" id="actions-224">
-                  <!-- Green checkmark button -->
-                  <button 
-                    type="button" 
-                    class="btn-icon-only" 
-                    style="background: #22c55e; color: #fff; border: none; cursor: pointer;" 
-                    title="Approve Booking"
-                    onclick="approveBooking('224')"
-                  >
-                    ✓
-                  </button>
-                  <!-- Red cross button -->
-                  <button 
-                    type="button" 
-                    class="btn-icon-only" 
-                    style="background: #ef4444; color: #fff; border: none; cursor: pointer;" 
-                    title="Reject Booking"
-                    onclick="rejectBooking('224')"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </td>
-            </tr>
-
-            <!-- Row 2: Room 101 Approved -->
-            <tr>
-              <td style="font-weight: 700; font-size: 1rem;">Room 101</td>
-              <td style="color: #cbd5e1;">M. Tuazon</td>
-              <td style="color: #cbd5e1;">1 - 2:30 PM</td>
-              <td style="color: #cbd5e1;">Sep 9</td>
-              <td>
-                <span class="status-pill">
-                  <span class="status-dot dot-approved"></span>
-                  <span style="color: #4ade80;">Approved</span>
-                </span>
-              </td>
-              <td style="text-align: right; color: #94a3b8; font-size: 0.85rem;">—</td>
-            </tr>
-
-            <!-- Row 3: DABBA Cancelled -->
-            <tr>
-              <td style="font-weight: 700; font-size: 1rem;">DABBA</td>
-              <td style="color: #cbd5e1;">J. Dela Cruz</td>
-              <td style="color: #cbd5e1;">3 - 5 PM</td>
-              <td style="color: #cbd5e1;">Sep 10</td>
-              <td>
-                <span class="status-pill">
-                  <span class="status-dot dot-cancelled"></span>
-                  <span style="color: #f87171;">Cancelled</span>
-                </span>
-              </td>
-              <td style="text-align: right; color: #94a3b8; font-size: 0.85rem;">—</td>
-            </tr>
+            <?php if (!empty($recentBookings)): ?>
+              <?php foreach ($recentBookings as $b): ?>
+                <?php
+                $dotClass = match(strtolower($b['status'])) {
+                    'approved'  => 'dot-approved',
+                    'pending'   => 'dot-pending',
+                    default     => 'dot-cancelled',
+                };
+                $instructorName = trim(($b['first_name'] ?? '') . ' ' . ($b['last_name'] ?? ''));
+                ?>
+                <tr>
+                  <td style="font-weight: 700; font-size: 1rem;"><?= esc($b['room_name']) ?></td>
+                  <td style="color: #cbd5e1;"><?= esc($instructorName ?: 'Faculty') ?></td>
+                  <td style="color: #cbd5e1; font-weight: 600;">
+                    <?= date('g:i A', strtotime($b['start_time'])) ?> – <?= date('g:i A', strtotime($b['end_time'])) ?>
+                  </td>
+                  <td style="color: #cbd5e1;"><?= date('M j', strtotime($b['booking_date'])) ?></td>
+                  <td>
+                    <span class="status-pill">
+                      <span class="status-dot <?= esc($dotClass) ?>"></span>
+                      <span style="text-transform: capitalize;"><?= esc($b['status']) ?></span>
+                    </span>
+                  </td>
+                  <td style="text-align: right;">
+                    <?php if (strtolower($b['status']) === 'pending'): ?>
+                      <div style="display: inline-flex; gap: 8px;">
+                        <!-- Approve form button -->
+                        <form method="POST" action="<?= base_url('admin/bookings/approve/' . $b['id']) ?>" style="display: inline;">
+                          <?= csrf_field() ?>
+                          <button 
+                            type="submit" 
+                            class="btn-icon-only" 
+                            style="background: #22c55e; color: #fff; border: none; cursor: pointer;" 
+                            title="Approve Booking"
+                          >
+                            ✓
+                          </button>
+                        </form>
+                        <!-- Reject form button -->
+                        <form method="POST" action="<?= base_url('admin/bookings/reject/' . $b['id']) ?>" style="display: inline;">
+                          <?= csrf_field() ?>
+                          <button 
+                            type="submit" 
+                            class="btn-icon-only" 
+                            style="background: #ef4444; color: #fff; border: none; cursor: pointer;" 
+                            title="Reject Booking"
+                          >
+                            ✕
+                          </button>
+                        </form>
+                      </div>
+                    <?php else: ?>
+                      <span style="color: #64748b; font-size: 0.85rem;">—</span>
+                    <?php endif; ?>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            <?php else: ?>
+              <tr>
+                <td colspan="6" style="text-align: center; color: #94a3b8; padding: 32px 0;">
+                  No recent bookings recorded.
+                </td>
+              </tr>
+            <?php endif; ?>
           </tbody>
         </table>
       </div>
@@ -145,18 +158,6 @@
   </main>
 
   <script src="<?= base_url('assets/js/main.js') ?>"></script>
-  <script>
-    function approveBooking(id) {
-      document.getElementById('status-pill-' + id).innerHTML = '<span class="status-dot dot-approved"></span><span style="color: #4ade80;">Approved</span>';
-      document.getElementById('actions-' + id).innerHTML = '<span style="color: #4ade80; font-size: 0.85rem; font-weight: 600;">Approved</span>';
-      showToast('Booking for Room ' + id + ' Approved!', 'success');
-    }
-    function rejectBooking(id) {
-      document.getElementById('status-pill-' + id).innerHTML = '<span class="status-dot dot-cancelled"></span><span style="color: #f87171;">Cancelled</span>';
-      document.getElementById('actions-' + id).innerHTML = '<span style="color: #f87171; font-size: 0.85rem; font-weight: 600;">Rejected</span>';
-      showToast('Booking for Room ' + id + ' Rejected.', 'error');
-    }
-  </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmgXzuez/pHXEzlN77IfH8MRQ=" crossorigin="anonymous"></script>
 </body>
 </html>

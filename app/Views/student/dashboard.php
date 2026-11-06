@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Dashboard - CPC RoomFinder | Colegio De la Purisima Concepcion</title>
+  <title><?= esc($title ?? 'Student Dashboard - CPC RoomFinder | Colegio De la Purisima Concepcion') ?></title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
   <link rel="stylesheet" href="<?= base_url('assets/css/style.css') ?>">
   <style>
@@ -32,10 +32,10 @@
       display: flex;
       justify-content: flex-end;
       align-items: center;
-      margin-bottom: 60px;
+      margin-bottom: 40px;
     }
     .student-welcome-box {
-      margin-bottom: 50px;
+      margin-bottom: 30px;
     }
     .student-welcome-box h1 {
       font-size: 2.8rem;
@@ -53,7 +53,7 @@
       gap: 36px;
       align-items: center;
       justify-content: center;
-      margin-top: 40px;
+      margin-top: 30px;
       flex-wrap: wrap;
     }
     .action-tile-btn {
@@ -88,28 +88,57 @@
       font-weight: 700;
       letter-spacing: 0.3px;
     }
+    @media (max-width: 768px) {
+      .student-layout {
+        flex-direction: column;
+      }
+      .student-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+      }
+      .student-main {
+        padding: 24px 20px;
+      }
+    }
   </style>
 </head>
 <body>
+
+  <?php
+  $userName = session()->get('name') ?? 'John Doe';
+  $firstName = session()->get('first_name') ?? 'Student';
+  $firstLetter = substr((string)$firstName, 0, 1);
+  $lastLetter = substr((string)(session()->get('last_name') ?? 'D'), 0, 1);
+  $avatar = strtoupper($firstLetter . $lastLetter);
+  ?>
 
   <div class="student-layout">
     <!-- Student Sidebar -->
     <aside class="student-sidebar">
       <div class="sidebar-profile" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; margin-bottom: 28px;">
-        <div class="profile-avatar">JD</div>
+        <div class="profile-avatar"><?= esc($avatar) ?></div>
         <div class="profile-info">
-          <div class="profile-name">John Doe</div>
+          <div class="profile-name"><?= esc($userName) ?></div>
           <div class="profile-role">Student</div>
         </div>
-        <button type="button" class="profile-edit-btn" title="Edit Profile" aria-label="Edit Profile">
+        <a href="<?= base_url('profile') ?>" class="profile-edit-btn" title="Edit Profile" aria-label="Edit Profile" style="display:inline-flex; align-items:center; justify-content:center; text-decoration:none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 20h9"></path>
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
           </svg>
-        </button>
+        </a>
       </div>
 
       <nav class="sidebar-nav">
+        <a href="<?= base_url('student/rooms') ?>" class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <span>Find rooms</span>
+        </a>
+
         <a href="<?= base_url('student/announcements') ?>" class="nav-item">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -139,14 +168,26 @@
       </header>
 
       <div class="student-welcome-box">
-        <h1>Welcome, John!</h1>
+        <h1>Welcome, <?= esc($firstName) ?>!</h1>
         <p>Let's find an open classroom for you today.</p>
       </div>
+
+      <?php if (!empty($pinnedAnnouncement)): ?>
+        <div class="pinned-banner" style="margin-bottom: 24px;">
+          <div class="banner-tag">📌 Campus Notice</div>
+          <p style="font-size: 1rem; font-weight: 700; color: #ffffff; margin-bottom: 4px;">
+            <?= esc($pinnedAnnouncement['title']) ?>
+          </p>
+          <p style="font-size: 0.88rem; color: #cbd5e1; margin: 0;">
+            <?= esc(mb_strimwidth($pinnedAnnouncement['message'], 0, 140, '...')) ?>
+          </p>
+        </div>
+      <?php endif; ?>
 
       <!-- Action Tiles matching screenshot -->
       <div class="student-action-tiles">
         <!-- Log Out Tile -->
-        <a href="<?= base_url('login') ?>" class="action-tile-btn" id="btnStudentLogoutTile">
+        <a href="<?= base_url('logout') ?>" class="action-tile-btn" id="btnStudentLogoutTile">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
             <polyline points="16 17 21 12 16 7"></polyline>
@@ -163,7 +204,7 @@
             <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
             <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
           </svg>
-          <span>Dashboard</span>
+          <span>Find Rooms</span>
         </a>
       </div>
     </main>

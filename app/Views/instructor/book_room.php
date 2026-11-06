@@ -100,20 +100,22 @@
     .time-input-group .icon-inside {
       position: absolute;
       right: 12px;
-      color: #f59e0b;
-      font-size: 1.1rem;
       pointer-events: none;
+      font-size: 1rem;
+      opacity: 0.7;
     }
     .time-conflict-warning {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1.5px solid rgba(239, 68, 68, 0.45);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #fca5a5;
+      font-size: 0.82rem;
+      font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 8px;
-      color: #f87171;
-      font-size: 0.85rem;
-      font-style: italic;
-      padding: 6px 12px;
-      border-radius: 6px;
-      background: rgba(239, 68, 68, 0.08);
+      gap: 10px;
+      line-height: 1.4;
     }
   </style>
 </head>
@@ -125,7 +127,6 @@
   <!-- Main View Content -->
   <main class="portal-main">
     
-    <!-- Top Header Bar matching Bottom Panel Screenshot -->
     <div class="booking-screen-header">
       <div class="booking-title-group">
         <h1>Book a Room</h1>
@@ -143,23 +144,46 @@
 
     <hr class="booking-divider">
 
+    <?php if (session()->getFlashdata('error')): ?>
+      <div class="alert alert-danger" style="background: rgba(239, 68, 68, 0.15); border: 1.5px solid rgba(239, 68, 68, 0.45); color: #fca5a5; font-size: 0.9rem; padding: 12px 18px; border-radius: 10px; margin-bottom: 24px; max-width: 820px;">
+        ⚠️ <?= esc(session()->getFlashdata('error')) ?>
+      </div>
+    <?php endif; ?>
+
+    <?php if (session()->getFlashdata('errors')): ?>
+      <div class="alert alert-danger" style="background: rgba(239, 68, 68, 0.15); border: 1.5px solid rgba(239, 68, 68, 0.45); color: #fca5a5; font-size: 0.9rem; padding: 12px 18px; border-radius: 10px; margin-bottom: 24px; max-width: 820px;">
+        <ul style="margin: 0; padding-left: 18px;">
+          <?php foreach (session()->getFlashdata('errors') as $err): ?>
+            <li><?= esc($err) ?></li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
+    <?php endif; ?>
+
     <!-- Booking Form Container -->
     <div class="booking-form-box">
       <form 
         id="instructorBookingRequestForm" 
-        onsubmit="event.preventDefault(); showToast('Booking request submitted! Awaiting administrator approval.', 'success'); setTimeout(() => { window.location.href = '<?= base_url('instructor/bookings') ?>'; }, 1600);"
+        method="POST"
+        action="<?= base_url('instructor/book') ?>"
       >
+        <?= csrf_field() ?>
         
         <!-- Row 1: Room No. / name & Capacity -->
         <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 30px; margin-bottom: 22px; align-items: start;">
           <div>
             <label class="book-field-label" for="roomSelectField">Room No. / name</label>
-            <select class="book-select-control" id="roomSelectField" name="room_selection" onchange="updateRoomCapacity(this)">
-              <option value="Room 224" data-cap="24" <?= (isset($selectedRoom) && $selectedRoom === 'Room 224') ? 'selected' : '' ?>>Room 224 - CET department</option>
-              <option value="Room 223" data-cap="30" <?= (isset($selectedRoom) && $selectedRoom === 'Room 223') ? 'selected' : '' ?>>Room 223 - CET department</option>
-              <option value="Room 101" data-cap="36" <?= (isset($selectedRoom) && $selectedRoom === 'Room 101') ? 'selected' : '' ?>>Room 101 - Psychology department</option>
-              <option value="DABBA" data-cap="80" <?= (isset($selectedRoom) && $selectedRoom === 'DABBA') ? 'selected' : '' ?>>DABBA - Marine department</option>
-              <option value="Lab D" data-cap="20" <?= (isset($selectedRoom) && $selectedRoom === 'Lab D') ? 'selected' : '' ?>>Lab D - IT department</option>
+            <select class="book-select-control" id="roomSelectField" name="room_id" onchange="updateRoomCapacity(this)">
+              <?php if (!empty($availableRooms)): ?>
+                <?php foreach ($availableRooms as $r): ?>
+                  <?php $isSelected = (isset($selectedRoom) && ($selectedRoom === $r['room_name'] || (isset($roomDetails['id']) && (int)$roomDetails['id'] === (int)$r['id']))); ?>
+                  <option value="<?= esc($r['id']) ?>" data-cap="<?= esc($r['capacity']) ?>" <?= $isSelected ? 'selected' : '' ?>>
+                    <?= esc($r['room_name']) ?> (Capacity: <?= esc($r['capacity']) ?>)
+                  </option>
+                <?php endforeach; ?>
+              <?php else: ?>
+                <option value="Room 224" data-cap="24" selected>Room 224</option>
+              <?php endif; ?>
             </select>
           </div>
 
@@ -169,7 +193,7 @@
               <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="color: #cbd5e1;">
                 <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"></path>
               </svg>
-              <span id="displayCapacityCount">24</span>
+              <span id="displayCapacityCount"><?= esc($roomDetails['capacity'] ?? '24') ?></span>
             </div>
           </div>
         </div>
@@ -183,27 +207,26 @@
               class="book-input-control" 
               id="bookingDateField" 
               name="booking_date"
-              value="<?= date('Y-m-d') ?>"
+              value="<?= esc(old('booking_date', date('Y-m-d'))) ?>"
+              min="<?= date('Y-m-d') ?>"
               required
             >
           </div>
         </div>
 
-        <!-- Row 3: Start Time & End Time with Conflict Note -->
+        <!-- Row 3: Start Time & End Time -->
         <div style="display: grid; grid-template-columns: 140px 140px 1fr; gap: 20px; margin-bottom: 24px; align-items: flex-end;">
           <div>
             <label class="book-field-label" for="startTimeInput">Start Time:</label>
             <div class="time-input-group">
               <input 
-                type="text" 
+                type="time" 
                 class="book-input-control" 
                 id="startTimeInput" 
                 name="start_time" 
-                value="7:00 AM"
-                placeholder="7:00 AM"
+                value="<?= esc(old('start_time', '08:00')) ?>"
                 required
               >
-              <span class="icon-inside">🕒</span>
             </div>
           </div>
 
@@ -211,24 +234,18 @@
             <label class="book-field-label" for="endTimeInput">End Time:</label>
             <div class="time-input-group">
               <input 
-                type="text" 
+                type="time" 
                 class="book-input-control" 
                 id="endTimeInput" 
                 name="end_time" 
-                value="10:00 AM"
-                placeholder="10:00 AM"
+                value="<?= esc(old('end_time', '10:00')) ?>"
                 required
               >
-              <span class="icon-inside">🕒</span>
             </div>
           </div>
 
-          <!-- Conflict Warning Banner matching Screenshot -->
-          <div class="time-conflict-warning" id="timeConflictAlert">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink: 0;">
-              <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"></path>
-            </svg>
-            <span>This room is already booked 8:00–9:00 AM. Pick a different time.</span>
+          <div style="font-size: 0.82rem; color: #94a3b8; padding-bottom: 10px;">
+            Free-entry 24-hr time slot. Real-time overlap conflict check enforced.
           </div>
         </div>
 
@@ -239,9 +256,9 @@
             type="text" 
             class="book-input-control" 
             id="subjectPurposeInput" 
-            name="subject_purpose" 
-            placeholder="GEC 8: Ethics"
-            value="GEC 8: Ethics"
+            name="purpose" 
+            placeholder="e.g. GEC 8: Ethics Lecture"
+            value="<?= esc(old('purpose')) ?>"
             required
           >
         </div>
@@ -270,23 +287,6 @@
       const cap = selectedOption.dataset.cap || '24';
       document.getElementById('displayCapacityCount').textContent = cap;
     }
-
-    // Interactive time change check
-    const startInp = document.getElementById('startTimeInput');
-    const endInp = document.getElementById('endTimeInput');
-    const warningBox = document.getElementById('timeConflictAlert');
-
-    function checkTimeConflict() {
-      const s = startInp.value.toUpperCase();
-      // If time overlaps 8:00 AM or 9:00 AM, show conflict note as in screenshot
-      if (s.includes('7') || s.includes('8')) {
-        warningBox.style.display = 'flex';
-      } else {
-        warningBox.style.display = 'none';
-      }
-    }
-
-    startInp.addEventListener('input', checkTimeConflict);
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmgXzuez/pHXEzlN77IfH8MRQ=" crossorigin="anonymous"></script>
 </body>

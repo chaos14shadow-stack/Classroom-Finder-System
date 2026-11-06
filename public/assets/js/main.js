@@ -161,20 +161,27 @@ function initRegisterWizard() {
 
   // Handle final registration form submit
   form.addEventListener('submit', (e) => {
-    e.preventDefault();
     const pass1 = form.querySelector('[name="password"]')?.value;
     const pass2 = form.querySelector('[name="password_confirm"]')?.value;
 
     if (!pass1 || pass1.length < 6) {
+      e.preventDefault();
       showToast('Password must be at least 6 characters long.', 'error');
       return;
     }
 
     if (pass1 !== pass2) {
+      e.preventDefault();
       showToast('Passwords do not match. Please verify.', 'error');
       return;
     }
 
+    // If form has a backend action, submit it
+    if (form.getAttribute('action')) {
+      return true;
+    }
+
+    e.preventDefault();
     const currentRole = roleSelect ? roleSelect.value : 'student';
     const idVal = currentRole === 'student' 
       ? form.querySelector('[name="student_id"]')?.value || '202401001'
@@ -206,7 +213,29 @@ function initLoginForm() {
 
   const usernameInput = document.getElementById('loginUsername');
   const passwordInput = document.getElementById('loginPassword');
+  const togglePassBtn = document.getElementById('togglePasswordBtn');
+  const eyeIconShow = document.getElementById('eyeIconShow');
+  const eyeIconHide = document.getElementById('eyeIconHide');
   const roleChips = document.querySelectorAll('.role-chip');
+
+  // Show / Hide Password toggle
+  if (togglePassBtn && passwordInput) {
+    togglePassBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const isPassword = passwordInput.getAttribute('type') === 'password';
+      passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+
+      if (eyeIconShow && eyeIconHide) {
+        eyeIconShow.style.display = isPassword ? 'none' : 'inline-block';
+        eyeIconHide.style.display = isPassword ? 'inline-block' : 'none';
+      }
+
+      const label = isPassword ? 'Hide password' : 'Show password';
+      togglePassBtn.setAttribute('title', label);
+      togglePassBtn.setAttribute('aria-label', label);
+      togglePassBtn.style.color = isPassword ? 'var(--cpc-orange)' : '#64748b';
+    });
+  }
 
   // Preset demo accounts for reviewer convenience
   const demoAccounts = {
@@ -233,26 +262,41 @@ function initLoginForm() {
       if (demoAccounts[role]) {
         if (usernameInput) usernameInput.value = demoAccounts[role].user;
         if (passwordInput) passwordInput.value = demoAccounts[role].pass;
+
+        roleChips.forEach(c => {
+          c.style.background = '';
+          c.style.borderColor = '';
+        });
+        chip.style.background = 'var(--cpc-orange)';
+        chip.style.borderColor = 'var(--cpc-orange)';
+
         showToast(`Auto-filled credentials for ${role.toUpperCase()}`, 'success');
       }
     });
   });
 
   loginForm.addEventListener('submit', (e) => {
-    e.preventDefault();
     const user = usernameInput?.value.trim() || '';
     const pass = passwordInput?.value || '';
 
     if (!user) {
+      e.preventDefault();
       showToast('Please enter your Username or Student/Employee ID.', 'error');
       return;
     }
     if (!pass) {
+      e.preventDefault();
       showToast('Please enter your Password.', 'error');
       return;
     }
 
-    // Role detection heuristic for frontend demo
+    // If backend action URL is defined on the form, submit to backend
+    if (loginForm.getAttribute('action')) {
+      return true;
+    }
+
+    e.preventDefault();
+    // Role detection heuristic for frontend demo fallback
     let destination = loginForm.dataset.studentUrl || '/student/dashboard';
     if (user.toLowerCase().includes('admin') || user === '1001') {
       destination = loginForm.dataset.adminUrl || '/admin/overview';

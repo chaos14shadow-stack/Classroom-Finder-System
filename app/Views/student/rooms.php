@@ -72,6 +72,7 @@
       background: #171d50;
       border-radius: 12px;
       transition: transform var(--transition-fast), background var(--transition-fast);
+      cursor: pointer;
     }
     .room-directory-table tbody tr:hover {
       background: #1e2667;
@@ -102,11 +103,25 @@
 
   <!-- Main View Content -->
   <main class="portal-main">
-    
-    <!-- Top Filter Pill Bar matching Screenshot -->
+    <div class="portal-topbar">
+      <div class="portal-title-group">
+        <h1>Classrooms</h1>
+        <p class="subtitle">Search, filter, and inspect campus classroom schedules in real time</p>
+      </div>
+
+      <button class="menu-btn" type="button" aria-label="Open mobile navigation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Filter Pill Bar matching mockup -->
     <div class="filter-pill-bar">
       <div class="search-pill-wrapper">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
@@ -115,33 +130,42 @@
           class="search-pill-input" 
           id="studentRoomSearchInp" 
           placeholder="Search Room No. / name"
+          value="<?= esc($filters['q'] ?? '') ?>"
         >
       </div>
 
       <select class="select-pill-btn" id="studentDeptSelect">
         <option value="all">Department</option>
-        <option value="CET">CET</option>
-        <option value="Psychology">Psychology</option>
-        <option value="Marine">Marine</option>
-        <option value="IT">IT</option>
+        <?php if (!empty($departments)): ?>
+          <?php foreach ($departments as $d): ?>
+            <option value="<?= esc($d['code']) ?>" <?= ($filters['department'] ?? '') === $d['code'] ? 'selected' : '' ?>>
+              <?= esc($d['code']) ?>
+            </option>
+          <?php endforeach; ?>
+        <?php else: ?>
+          <option value="CET">CET</option>
+          <option value="Psychology">Psychology</option>
+          <option value="Marine">Marine</option>
+          <option value="IT">IT</option>
+        <?php endif; ?>
       </select>
 
       <select class="select-pill-btn" id="studentCapSelect">
         <option value="all">Capacity</option>
-        <option value="20">20+ Seats</option>
-        <option value="30">30+ Seats</option>
-        <option value="50">50+ Seats</option>
+        <option value="20" <?= ($filters['capacity'] ?? 0) == 20 ? 'selected' : '' ?>>20+ Seats</option>
+        <option value="30" <?= ($filters['capacity'] ?? 0) == 30 ? 'selected' : '' ?>>30+ Seats</option>
+        <option value="50" <?= ($filters['capacity'] ?? 0) == 50 ? 'selected' : '' ?>>50+ Seats</option>
       </select>
 
       <select class="select-pill-btn" id="studentStatusSelect">
         <option value="all">Status</option>
-        <option value="Available">Available</option>
-        <option value="Occupied">Occupied</option>
-        <option value="Maintenance">Maintenance</option>
+        <option value="Available" <?= ($filters['status'] ?? '') === 'Available' ? 'selected' : '' ?>>Available</option>
+        <option value="Occupied" <?= ($filters['status'] ?? '') === 'Occupied' ? 'selected' : '' ?>>Occupied</option>
+        <option value="Maintenance" <?= ($filters['status'] ?? '') === 'Maintenance' ? 'selected' : '' ?>>Maintenance</option>
       </select>
     </div>
 
-    <!-- Rooms Table matching Top Panel Screenshot -->
+    <!-- Rooms Table -->
     <table class="room-directory-table" id="studentRoomsTable">
       <thead>
         <tr>
@@ -152,65 +176,56 @@
         </tr>
       </thead>
       <tbody>
-        <!-- Row 1: Room 224 -->
-        <tr data-room="Room 224" data-dept="CET" data-capacity="24" data-status="Available">
-          <td>Room 224</td>
-          <td style="color: #cbd5e1;">CET</td>
-          <td>
-            <span style="display: inline-flex; align-items: center; gap: 8px;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color: #cbd5e1;">
-                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"></path>
-              </svg>
-              <span>24</span>
-            </span>
-          </td>
-          <td>
-            <span class="status-pill">
-              <span class="status-dot dot-approved"></span>
-              <span style="color: #cbd5e1;">Available</span>
-            </span>
-          </td>
-        </tr>
-
-        <!-- Row 2: Room 101 -->
-        <tr data-room="Room 101" data-dept="Psychology" data-capacity="36" data-status="Occupied">
-          <td>Room 101</td>
-          <td style="color: #cbd5e1;">Psychology</td>
-          <td>
-            <span style="display: inline-flex; align-items: center; gap: 8px;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color: #cbd5e1;">
-                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"></path>
-              </svg>
-              <span>36</span>
-            </span>
-          </td>
-          <td>
-            <span class="status-pill">
-              <span class="status-dot dot-cancelled"></span>
-              <span style="color: #cbd5e1;">Occupied</span>
-            </span>
-          </td>
-        </tr>
-
-        <!-- Row 3: DABBA -->
-        <tr data-room="DABBA" data-dept="Marine" data-capacity="80" data-status="Maintenance">
-          <td>DABBA</td>
-          <td style="color: #cbd5e1;">Marine</td>
-          <td>
-            <span style="display: inline-flex; align-items: center; gap: 8px;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color: #cbd5e1;">
-                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"></path>
-              </svg>
-              <span>80</span>
-            </span>
-          </td>
-          <td>
-            <span class="status-pill">
-              <span class="status-dot dot-maintenance"></span>
-              <span style="color: #cbd5e1;">Maintenance</span>
-            </span>
-          </td>
-        </tr>
+        <?php if (!empty($rooms)): ?>
+          <?php foreach ($rooms as $r): ?>
+            <?php
+            $dotClass = match($r['status']) {
+                'Available'   => 'dot-approved',
+                'Occupied'    => 'dot-cancelled',
+                'Maintenance' => 'dot-maintenance',
+                default       => 'dot-pending',
+            };
+            ?>
+            <tr 
+              data-room="<?= esc($r['room_name']) ?>" 
+              data-dept="<?= esc($r['department_code'] ?? '') ?>" 
+              data-capacity="<?= esc($r['capacity']) ?>" 
+              data-status="<?= esc($r['status']) ?>"
+              onclick="window.location.href='<?= base_url('student/rooms/' . urlencode($r['room_name'])) ?>'"
+              title="Click to view <?= esc($r['room_name']) ?> schedule"
+            >
+              <td>
+                <span style="color: #ffffff;"><?= esc($r['room_name']) ?></span>
+                <?php if (!empty($r['occupancy']['badge_text'])): ?>
+                  <div style="font-size: 0.76rem; color: #fb923c; margin-top: 3px; font-weight: 500;">
+                    <?= esc($r['occupancy']['badge_text']) ?>
+                  </div>
+                <?php endif; ?>
+              </td>
+              <td style="color: #cbd5e1;"><?= esc($r['department_code'] ?? ($r['department_name'] ?? 'General')) ?></td>
+              <td>
+                <span style="display: inline-flex; align-items: center; gap: 8px;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color: #cbd5e1;">
+                    <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"></path>
+                  </svg>
+                  <span><?= esc($r['capacity']) ?></span>
+                </span>
+              </td>
+              <td>
+                <span class="status-pill">
+                  <span class="status-dot <?= esc($dotClass) ?>"></span>
+                  <span style="color: #cbd5e1;"><?= esc($r['status']) ?></span>
+                </span>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        <?php else: ?>
+          <tr>
+            <td colspan="4" style="text-align: center; color: #94a3b8; padding: 36px 0;">
+              No classrooms found matching your search criteria.
+            </td>
+          </tr>
+        <?php endif; ?>
       </tbody>
     </table>
 
@@ -225,12 +240,13 @@
     const sStat = document.getElementById('studentStatusSelect');
 
     function filterStudentRooms() {
-      const q = sSearch.value.toLowerCase();
-      const d = sDept.value;
-      const c = sCap.value;
-      const s = sStat.value;
+      const q = sSearch ? sSearch.value.toLowerCase().trim() : '';
+      const d = sDept ? sDept.value : 'all';
+      const c = sCap ? sCap.value : 'all';
+      const s = sStat ? sStat.value : 'all';
 
       document.querySelectorAll('#studentRoomsTable tbody tr').forEach(row => {
+        if (!row.dataset.room) return;
         const room = row.dataset.room.toLowerCase();
         const dept = row.dataset.dept;
         const cap = parseInt(row.dataset.capacity, 10);
@@ -249,10 +265,10 @@
       });
     }
 
-    sSearch.addEventListener('input', filterStudentRooms);
-    sDept.addEventListener('change', filterStudentRooms);
-    sCap.addEventListener('change', filterStudentRooms);
-    sStat.addEventListener('change', filterStudentRooms);
+    if (sSearch) sSearch.addEventListener('input', filterStudentRooms);
+    if (sDept) sDept.addEventListener('change', filterStudentRooms);
+    if (sCap) sCap.addEventListener('change', filterStudentRooms);
+    if (sStat) sStat.addEventListener('change', filterStudentRooms);
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmgXzuez/pHXEzlN77IfH8MRQ=" crossorigin="anonymous"></script>
 </body>

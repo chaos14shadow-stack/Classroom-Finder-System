@@ -1,6 +1,11 @@
 <?php
 /** @var string $activeNav */
 $activeNav = $activeNav ?? 'overview';
+$userName = session()->get('name') ?? 'System Admin';
+$userRole = ucfirst((string)(session()->get('role') ?? 'Admin'));
+$firstLetter = substr((string)(session()->get('first_name') ?? 'A'), 0, 1);
+$lastLetter = substr((string)(session()->get('last_name') ?? 'D'), 0, 1);
+$userInitials = strtoupper($firstLetter . $lastLetter);
 ?>
 <aside class="cpc-sidebar" id="adminSidebar">
   <a class="sidebar-brand" href="<?= base_url('admin/overview') ?>">
@@ -9,17 +14,17 @@ $activeNav = $activeNav ?? 'overview';
   </a>
 
   <div class="sidebar-profile">
-    <div class="profile-avatar">AD</div>
+    <div class="profile-avatar"><?= esc($userInitials) ?></div>
     <div class="profile-info">
-      <div class="profile-name">Admin</div>
-      <div class="profile-role">Administrator</div>
+      <div class="profile-name"><?= esc($userName) ?></div>
+      <div class="profile-role"><?= esc($userRole) ?></div>
     </div>
-    <button type="button" class="profile-edit-btn" title="Edit Admin Profile" aria-label="Edit Profile">
+    <a href="<?= base_url('profile') ?>" class="profile-edit-btn" title="Edit Admin Profile" aria-label="Edit Profile" style="display:inline-flex; align-items:center; justify-content:center; text-decoration:none;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 20h9"></path>
         <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
       </svg>
-    </button>
+    </a>
   </div>
 
   <nav class="sidebar-nav">
@@ -70,7 +75,7 @@ $activeNav = $activeNav ?? 'overview';
   </nav>
 
   <div class="sidebar-footer">
-    <a href="<?= base_url('login') ?>" class="logout-link">
+    <a href="<?= base_url('logout') ?>" class="logout-link">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
         <polyline points="16 17 21 12 16 7"></polyline>

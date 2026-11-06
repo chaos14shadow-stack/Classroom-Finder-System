@@ -105,35 +105,56 @@
 
   <!-- Main View Content -->
   <main class="portal-main">
-    
-    <!-- Top Filter Pill Bar matching Screenshot Middle Panel -->
+    <div class="portal-topbar">
+      <div class="portal-title-group">
+        <h1>Book a Classroom</h1>
+        <p class="subtitle">Select a room to request or proceed directly to reservation form</p>
+      </div>
+
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <a href="<?= base_url('instructor/book/form') ?>" class="btn btn-lime btn-sm">
+          Direct Booking Form →
+        </a>
+      </div>
+    </div>
+
+    <!-- Filter Pill Bar matching mockup -->
     <div class="filter-pill-bar">
       <div class="search-pill-wrapper">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
         <input 
           type="text" 
           class="search-pill-input" 
-          id="instructorSearchInp" 
+          id="instructorRoomSearchInp" 
           placeholder="Search Room No. / name"
+          value="<?= esc($filters['q'] ?? '') ?>"
         >
       </div>
 
       <select class="select-pill-btn" id="instructorDeptSelect">
         <option value="all">Department</option>
-        <option value="CET">CET</option>
-        <option value="Psychology">Psychology</option>
-        <option value="Marine">Marine</option>
-        <option value="IT">IT</option>
+        <?php if (!empty($departments)): ?>
+          <?php foreach ($departments as $d): ?>
+            <option value="<?= esc($d['code']) ?>" <?= ($filters['department'] ?? '') === $d['code'] ? 'selected' : '' ?>>
+              <?= esc($d['code']) ?>
+            </option>
+          <?php endforeach; ?>
+        <?php else: ?>
+          <option value="CET">CET</option>
+          <option value="Psychology">Psychology</option>
+          <option value="Marine">Marine</option>
+          <option value="IT">IT</option>
+        <?php endif; ?>
       </select>
 
       <select class="select-pill-btn" id="instructorCapSelect">
         <option value="all">Capacity</option>
-        <option value="20">20+ Seats</option>
-        <option value="30">30+ Seats</option>
-        <option value="50">50+ Seats</option>
+        <option value="20" <?= ($filters['capacity'] ?? 0) == 20 ? 'selected' : '' ?>>20+ Seats</option>
+        <option value="30" <?= ($filters['capacity'] ?? 0) == 30 ? 'selected' : '' ?>>30+ Seats</option>
+        <option value="50" <?= ($filters['capacity'] ?? 0) == 50 ? 'selected' : '' ?>>50+ Seats</option>
       </select>
 
       <select class="select-pill-btn" id="instructorStatusSelect">
@@ -155,86 +176,60 @@
         </tr>
       </thead>
       <tbody>
-        <!-- Row 1: Room 224 (Available -> click to book) -->
-        <tr 
-          onclick="window.location.href='<?= base_url('instructor/book/form?room=Room%20224') ?>'" 
-          title="Click to request Room 224"
-          data-room="Room 224" 
-          data-dept="CET" 
-          data-capacity="24" 
-          data-status="Available"
-        >
-          <td>Room 224</td>
-          <td style="color: #cbd5e1;">CET</td>
-          <td>
-            <span style="display: inline-flex; align-items: center; gap: 8px;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color: #cbd5e1;">
-                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"></path>
-              </svg>
-              <span>24</span>
-            </span>
-          </td>
-          <td>
-            <span class="status-pill">
-              <span class="status-dot dot-approved"></span>
-              <span style="color: #cbd5e1;">Available</span>
-            </span>
-          </td>
-        </tr>
-
-        <!-- Row 2: Room 101 -->
-        <tr 
-          onclick="showToast('Room 101 is currently occupied by Psychology Department.', 'error')" 
-          title="Room 101 (Occupied)"
-          data-room="Room 101" 
-          data-dept="Psychology" 
-          data-capacity="36" 
-          data-status="Occupied"
-        >
-          <td>Room 101</td>
-          <td style="color: #cbd5e1;">Psychology</td>
-          <td>
-            <span style="display: inline-flex; align-items: center; gap: 8px;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color: #cbd5e1;">
-                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"></path>
-              </svg>
-              <span>36</span>
-            </span>
-          </td>
-          <td>
-            <span class="status-pill">
-              <span class="status-dot dot-cancelled"></span>
-              <span style="color: #cbd5e1;">Occupied</span>
-            </span>
-          </td>
-        </tr>
-
-        <!-- Row 3: DABBA -->
-        <tr 
-          onclick="showToast('DABBA is currently under facility repairs.', 'error')" 
-          title="DABBA (Maintenance)"
-          data-room="DABBA" 
-          data-dept="Marine" 
-          data-capacity="80" 
-          data-status="Maintenance"
-        >
-          <td>DABBA</td>
-          <td style="color: #cbd5e1;">Marine</td>
-          <td>
-            <span style="display: inline-flex; align-items: center; gap: 8px;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color: #cbd5e1;">
-                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"></path>
-              </svg>
-              <span>80</span>
-            </span>
-          </td>
-          <td>
-            <span class="status-pill">
-              <span class="status-dot dot-maintenance"></span>
-              <span style="color: #cbd5e1;">Maintenance</span>
-            </span>
-          </td>
-        </tr>
+        <?php if (!empty($rooms)): ?>
+          <?php foreach ($rooms as $r): ?>
+            <?php
+            $dotClass = match($r['status']) {
+                'Available'   => 'dot-approved',
+                'Occupied'    => 'dot-cancelled',
+                'Maintenance' => 'dot-maintenance',
+                default       => 'dot-pending',
+            };
+            $isMaint = ($r['status'] === 'Maintenance');
+            $clickAction = $isMaint 
+                ? "showToast('" . esc($r['room_name']) . " is currently under facility maintenance.', 'error')"
+                : "window.location.href='" . base_url('instructor/book/form?room=' . urlencode($r['room_name']) . '&room_id=' . $r['id']) . "'";
+            ?>
+            <tr 
+              onclick="<?= $clickAction ?>" 
+              title="<?= $isMaint ? 'Under Maintenance' : 'Click to book ' . esc($r['room_name']) ?>"
+              data-room="<?= esc($r['room_name']) ?>" 
+              data-dept="<?= esc($r['department_code'] ?? '') ?>" 
+              data-capacity="<?= esc($r['capacity']) ?>" 
+              data-status="<?= esc($r['status']) ?>"
+            >
+              <td>
+                <span style="color: #ffffff;"><?= esc($r['room_name']) ?></span>
+                <?php if ($isMaint && !empty($r['maintenance_note'])): ?>
+                  <div style="font-size: 0.78rem; color: #f87171; font-weight: normal; margin-top: 3px;">
+                    🔧 <?= esc($r['maintenance_note']) ?>
+                  </div>
+                <?php endif; ?>
+              </td>
+              <td style="color: #cbd5e1;"><?= esc($r['department_code'] ?? ($r['department_name'] ?? 'General')) ?></td>
+              <td>
+                <span style="display: inline-flex; align-items: center; gap: 8px;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color: #cbd5e1;">
+                    <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"></path>
+                  </svg>
+                  <span><?= esc($r['capacity']) ?></span>
+                </span>
+              </td>
+              <td>
+                <span class="status-pill">
+                  <span class="status-dot <?= esc($dotClass) ?>"></span>
+                  <span style="color: #cbd5e1;"><?= esc($r['status']) ?></span>
+                </span>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        <?php else: ?>
+          <tr>
+            <td colspan="4" style="text-align: center; color: #94a3b8; padding: 36px 0;">
+              No classrooms available.
+            </td>
+          </tr>
+        <?php endif; ?>
       </tbody>
     </table>
 
@@ -243,18 +238,19 @@
   <script src="<?= base_url('assets/js/main.js') ?>"></script>
   <script>
     // Live filter logic
-    const sSearch = document.getElementById('instructorSearchInp');
-    const sDept = document.getElementById('instructorDeptSelect');
-    const sCap = document.getElementById('instructorCapSelect');
-    const sStat = document.getElementById('instructorStatusSelect');
+    const iSearch = document.getElementById('instructorRoomSearchInp');
+    const iDept = document.getElementById('instructorDeptSelect');
+    const iCap = document.getElementById('instructorCapSelect');
+    const iStat = document.getElementById('instructorStatusSelect');
 
     function filterInstructorRooms() {
-      const q = sSearch.value.toLowerCase();
-      const d = sDept.value;
-      const c = sCap.value;
-      const s = sStat.value;
+      const q = iSearch ? iSearch.value.toLowerCase().trim() : '';
+      const d = iDept ? iDept.value : 'all';
+      const c = iCap ? iCap.value : 'all';
+      const s = iStat ? iStat.value : 'all';
 
       document.querySelectorAll('#instructorRoomsTable tbody tr').forEach(row => {
+        if (!row.dataset.room) return;
         const room = row.dataset.room.toLowerCase();
         const dept = row.dataset.dept;
         const cap = parseInt(row.dataset.capacity, 10);
@@ -273,10 +269,10 @@
       });
     }
 
-    sSearch.addEventListener('input', filterInstructorRooms);
-    sDept.addEventListener('change', filterInstructorRooms);
-    sCap.addEventListener('change', filterInstructorRooms);
-    sStat.addEventListener('change', filterInstructorRooms);
+    if (iSearch) iSearch.addEventListener('input', filterInstructorRooms);
+    if (iDept) iDept.addEventListener('change', filterInstructorRooms);
+    if (iCap) iCap.addEventListener('change', filterInstructorRooms);
+    if (iStat) iStat.addEventListener('change', filterInstructorRooms);
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmgXzuez/pHXEzlN77IfH8MRQ=" crossorigin="anonymous"></script>
 </body>
