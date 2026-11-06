@@ -37,7 +37,28 @@
         </div>
       </nav>
 
-      <form id="registerWizardForm" data-login-url="<?= base_url('login') ?>">
+      <?php if (session()->getFlashdata('errors')): ?>
+        <div class="alert alert-danger" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; font-size: 0.88rem; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
+          <strong>Please correct the following errors:</strong>
+          <ul style="margin: 6px 0 0 18px; padding: 0;">
+            <?php foreach (session()->getFlashdata('errors') as $err): ?>
+              <li><?= esc($err) ?></li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
+      <?php elseif (session()->getFlashdata('error')): ?>
+        <div class="alert alert-danger" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; font-size: 0.88rem; padding: 10px 14px; border-radius: 8px; margin-bottom: 20px;">
+          <?= esc(session()->getFlashdata('error')) ?>
+        </div>
+      <?php endif; ?>
+
+      <form 
+        id="registerWizardForm" 
+        method="POST" 
+        action="<?= base_url('register') ?>" 
+        data-login-url="<?= base_url('login') ?>"
+      >
+        <?= csrf_field() ?>
 
         <!-- STEP 1: Personal Details -->
         <div id="regStep1">
@@ -45,19 +66,19 @@
           <div class="register-form-grid">
             <div class="reg-field">
               <label for="regFirstname">Firstname</label>
-              <input type="text" class="reg-input" id="regFirstname" name="firstname" placeholder="John" required>
+              <input type="text" class="reg-input" id="regFirstname" name="firstname" value="<?= esc(old('firstname')) ?>" placeholder="John" required>
             </div>
 
             <div class="reg-field">
               <label for="regLastname">Lastname</label>
-              <input type="text" class="reg-input" id="regLastname" name="lastname" placeholder="Doe" required>
+              <input type="text" class="reg-input" id="regLastname" name="lastname" value="<?= esc(old('lastname')) ?>" placeholder="Doe" required>
             </div>
 
             <div class="reg-field">
               <label for="regRoleSelect">Registering as:</label>
               <select class="reg-select" id="regRoleSelect" name="role">
-                <option value="student" <?= (isset($initialRole) && $initialRole === 'instructor') ? '' : 'selected' ?>>Student / Instructor (Student)</option>
-                <option value="instructor" <?= (isset($initialRole) && $initialRole === 'instructor') ? 'selected' : '' ?>>Student / Instructor (Instructor)</option>
+                <option value="student" <?= (old('role', $initialRole ?? '') === 'instructor') ? '' : 'selected' ?>>Student / Instructor (Student)</option>
+                <option value="instructor" <?= (old('role', $initialRole ?? '') === 'instructor') ? 'selected' : '' ?>>Student / Instructor (Instructor)</option>
               </select>
             </div>
           </div>
@@ -65,30 +86,28 @@
           <!-- Dynamic Row 2 for STUDENT -->
           <div id="studentSpecificFields" class="register-form-grid">
             <div class="reg-field">
-              <label for="regStudentId">ID Number</label>
-              <input type="text" class="reg-input" id="regStudentId" name="student_id" placeholder="12345678">
+              <label for="regStudentId">Student ID Number</label>
+              <input type="text" class="reg-input" id="regStudentId" name="student_id" value="<?= esc(old('student_id')) ?>" placeholder="202401001">
             </div>
 
             <div class="reg-field">
               <label for="regCourse">Course</label>
               <select class="reg-select" id="regCourse" name="course">
-                <option value="BSIT">e.g. BSIT, BSCE, etc.</option>
-                <option value="BSIT">BS Information Technology (BSIT)</option>
-                <option value="BSCS">BS Computer Science (BSCS)</option>
-                <option value="BSCE">BS Civil Engineering (BSCE)</option>
-                <option value="BSEMC">BS Entertainment and Multimedia Computing</option>
-                <option value="BSBA">BS Business Administration</option>
+                <option value="BSIT" <?= old('course') === 'BSIT' ? 'selected' : '' ?>>BS Information Technology (BSIT)</option>
+                <option value="BSCS" <?= old('course') === 'BSCS' ? 'selected' : '' ?>>BS Computer Science (BSCS)</option>
+                <option value="BSCE" <?= old('course') === 'BSCE' ? 'selected' : '' ?>>BS Civil Engineering (BSCE)</option>
+                <option value="BSEMC" <?= old('course') === 'BSEMC' ? 'selected' : '' ?>>BS Entertainment and Multimedia Computing</option>
+                <option value="BSBA" <?= old('course') === 'BSBA' ? 'selected' : '' ?>>BS Business Administration</option>
               </select>
             </div>
 
             <div class="reg-field">
               <label for="regYearLevel">Year / Level</label>
               <select class="reg-select" id="regYearLevel" name="year_level">
-                <option value="1st yr">1st yr / 2nd / 3rd / 4th</option>
-                <option value="1st yr">1st Year</option>
-                <option value="2nd yr">2nd Year</option>
-                <option value="3rd yr">3rd Year</option>
-                <option value="4th yr">4th Year</option>
+                <option value="1st Year" <?= old('year_level') === '1st Year' ? 'selected' : '' ?>>1st Year</option>
+                <option value="2nd Year" <?= old('year_level') === '2nd Year' ? 'selected' : '' ?>>2nd Year</option>
+                <option value="3rd Year" <?= old('year_level') === '3rd Year' ? 'selected' : '' ?>>3rd Year</option>
+                <option value="4th Year" <?= old('year_level') === '4th Year' ? 'selected' : '' ?>>4th Year</option>
               </select>
             </div>
           </div>
@@ -97,18 +116,26 @@
           <div id="instructorSpecificFields" class="register-form-grid two-cols" style="display: none;">
             <div class="reg-field">
               <label for="regEmployeeId">Employee ID No.</label>
-              <input type="text" class="reg-input" id="regEmployeeId" name="employee_id" placeholder="12345678">
+              <input type="text" class="reg-input" id="regEmployeeId" name="employee_id" value="<?= esc(old('employee_id')) ?>" placeholder="202400645">
             </div>
 
             <div class="reg-field">
               <label for="regDepartment">Department</label>
               <select class="reg-select" id="regDepartment" name="department">
-                <option value="CET">e.g. CET, CASE, etc.</option>
-                <option value="CET">College of Engineering &amp; Technology (CET)</option>
-                <option value="CASE">College of Arts, Sciences &amp; Education (CASE)</option>
-                <option value="CBA">College of Business Administration (CBA)</option>
-                <option value="Marine">College of Maritime Education</option>
-                <option value="Psychology">Psychology Department</option>
+                <?php if (!empty($departments)): ?>
+                  <?php foreach ($departments as $d): ?>
+                    <option value="<?= esc($d['code']) ?>" <?= old('department') === $d['code'] ? 'selected' : '' ?>>
+                      <?= esc($d['name']) ?> (<?= esc($d['code']) ?>)
+                    </option>
+                  <?php endforeach; ?>
+                <?php else: ?>
+                  <option value="CET">College of Engineering &amp; Technology (CET)</option>
+                  <option value="CASE">College of Arts, Sciences &amp; Education (CASE)</option>
+                  <option value="CBA">College of Business Administration (CBA)</option>
+                  <option value="Marine">College of Maritime Education</option>
+                  <option value="Psychology">Psychology Department</option>
+                  <option value="IT">Information Technology (IT)</option>
+                <?php endif; ?>
               </select>
             </div>
           </div>
@@ -117,7 +144,7 @@
           <div class="register-form-grid full-width" style="margin-top: 16px;">
             <div class="reg-field">
               <label for="regEmail">Email</label>
-              <input type="email" class="reg-input" id="regEmail" name="email" placeholder="JohnDoe@email.com" required>
+              <input type="email" class="reg-input" id="regEmail" name="email" value="<?= esc(old('email')) ?>" placeholder="JohnDoe@email.com" required>
             </div>
           </div>
 
@@ -133,12 +160,12 @@
           <div class="register-form-grid full-width" style="gap: 20px;">
             <div class="reg-field">
               <label for="regPassword">Create your Password</label>
-              <input type="password" class="reg-input" id="regPassword" name="password" placeholder="••••••••••••">
+              <input type="password" class="reg-input" id="regPassword" name="password" placeholder="••••••••••••" required>
             </div>
 
             <div class="reg-field">
               <label for="regPasswordConfirm">Confirm Password:</label>
-              <input type="password" class="reg-input" id="regPasswordConfirm" name="password_confirm" placeholder="••••••••••••">
+              <input type="password" class="reg-input" id="regPasswordConfirm" name="password_confirm" placeholder="••••••••••••" required>
             </div>
           </div>
 

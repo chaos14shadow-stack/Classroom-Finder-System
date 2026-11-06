@@ -17,6 +17,7 @@
     <div class="portal-topbar">
       <div class="portal-title-group">
         <h1>Manage Bookings</h1>
+        <p class="subtitle">Review, approve, or cancel faculty classroom reservation requests</p>
       </div>
 
       <!-- Search & Status Filter matching Image 1 bottom -->
@@ -25,6 +26,7 @@
           type="text" 
           id="bookingSearchInp" 
           placeholder="🔍 Search Room No. / name"
+          value="<?= esc($search ?? '') ?>"
           style="padding: 8px 18px; border-radius: var(--radius-pill); background: var(--cpc-navy-card); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.88rem;"
         >
 
@@ -32,13 +34,25 @@
           id="bookingStatusSelect"
           style="padding: 8px 16px; border-radius: var(--radius-pill); background: var(--cpc-navy-card); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.88rem; cursor: pointer;"
         >
-          <option value="all">All Status ▾</option>
-          <option value="Pending">Pending</option>
-          <option value="Approved">Approved</option>
-          <option value="Cancelled">Cancelled</option>
+          <option value="all" <?= (empty($statusFilter) || $statusFilter === 'all') ? 'selected' : '' ?>>All Status ▾</option>
+          <option value="Pending" <?= (isset($statusFilter) && strtolower($statusFilter) === 'pending') ? 'selected' : '' ?>>Pending</option>
+          <option value="Approved" <?= (isset($statusFilter) && strtolower($statusFilter) === 'approved') ? 'selected' : '' ?>>Approved</option>
+          <option value="Cancelled" <?= (isset($statusFilter) && in_array(strtolower($statusFilter), ['cancelled', 'rejected'])) ? 'selected' : '' ?>>Cancelled / Rejected</option>
         </select>
       </div>
     </div>
+
+    <?php if (session()->getFlashdata('success')): ?>
+      <div class="alert alert-success" style="background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #86efac; font-size: 0.9rem; padding: 12px 18px; border-radius: 10px; margin-bottom: 20px;">
+        ✅ <?= esc(session()->getFlashdata('success')) ?>
+      </div>
+    <?php endif; ?>
+
+    <?php if (session()->getFlashdata('error')): ?>
+      <div class="alert alert-danger" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; font-size: 0.9rem; padding: 12px 18px; border-radius: 10px; margin-bottom: 20px;">
+        ⚠️ <?= esc(session()->getFlashdata('error')) ?>
+      </div>
+    <?php endif; ?>
 
     <!-- Bookings Table matching Image 1 bottom -->
     <div class="table-container">
@@ -54,89 +68,105 @@
           </tr>
         </thead>
         <tbody>
-          <!-- Row 1: Room 224 Pending -->
-          <tr data-room="Room 224" data-instructor="J. Doe" data-status="Pending">
-            <td style="font-weight: 700; font-size: 1rem;">Room 224</td>
-            <td style="color: #cbd5e1;">J. Doe</td>
-            <td style="color: #cbd5e1;">9 - 12 PM</td>
-            <td style="color: #cbd5e1;">Sep 9</td>
-            <td>
-              <span class="status-pill" id="b-status-224">
-                <span class="status-dot dot-pending"></span>
-                <span>Pending</span>
-              </span>
-            </td>
-            <td style="text-align: right;" id="b-actions-224">
-              <div style="display: inline-flex; gap: 8px;">
-                <button 
-                  type="button" 
-                  class="btn-icon-only" 
-                  style="background: #22c55e; color: #fff; border: none; cursor: pointer;" 
-                  title="Approve Booking"
-                  onclick="handleApprove('224')"
-                >
-                  ✓
-                </button>
-                <button 
-                  type="button" 
-                  class="btn-icon-only" 
-                  style="background: #ef4444; color: #fff; border: none; cursor: pointer;" 
-                  title="Cancel Booking"
-                  onclick="handleCancel('224')"
-                >
-                  ✕
-                </button>
-              </div>
-            </td>
-          </tr>
+          <?php if (!empty($bookings)): ?>
+            <?php foreach ($bookings as $b): ?>
+              <?php
+                $st = strtolower($b['status']);
+                $dotClass = 'dot-pending';
+                $pillColor = '#f59e0b';
+                if ($st === 'approved') {
+                    $dotClass = 'dot-approved';
+                    $pillColor = '#4ade80';
+                } elseif ($st === 'cancelled' || $st === 'rejected') {
+                    $dotClass = 'dot-cancelled';
+                    $pillColor = '#f87171';
+                }
 
-          <!-- Row 2: Room 101 Approved -->
-          <tr data-room="Room 101" data-instructor="M. Tuazon" data-status="Approved">
-            <td style="font-weight: 700; font-size: 1rem;">Room 101</td>
-            <td style="color: #cbd5e1;">M. Tuazon</td>
-            <td style="color: #cbd5e1;">1 - 2:30 PM</td>
-            <td style="color: #cbd5e1;">Sep 9</td>
-            <td>
-              <span class="status-pill" id="b-status-101">
-                <span class="status-dot dot-approved"></span>
-                <span style="color: #4ade80;">Approved</span>
-              </span>
-            </td>
-            <td style="text-align: right;" id="b-actions-101">
-              <button 
-                type="button" 
-                class="btn btn-sm" 
-                style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 4px 12px; font-size: 0.78rem;"
-                onclick="handleCancel('101')"
+                $timeRange = date('g:i A', strtotime($b['start_time'])) . ' - ' . date('g:i A', strtotime($b['end_time']));
+                $instructorName = trim(($b['first_name'] ?? '') . ' ' . ($b['last_name'] ?? ''));
+                if (empty($instructorName)) {
+                    $instructorName = 'User #' . $b['user_id'];
+                }
+              ?>
+              <tr 
+                data-room="<?= esc($b['room_name']) ?>" 
+                data-instructor="<?= esc($instructorName) ?>" 
+                data-status="<?= esc(ucfirst($st)) ?>"
               >
-                Cancel
-              </button>
-            </td>
-          </tr>
-
-          <!-- Row 3: DABBA Cancelled -->
-          <tr data-room="DABBA" data-instructor="J. Dela Cruz" data-status="Cancelled">
-            <td style="font-weight: 700; font-size: 1rem;">DABBA</td>
-            <td style="color: #cbd5e1;">J. Dela Cruz</td>
-            <td style="color: #cbd5e1;">3 - 5 PM</td>
-            <td style="color: #cbd5e1;">Sep 10</td>
-            <td>
-              <span class="status-pill" id="b-status-dabba">
-                <span class="status-dot dot-cancelled"></span>
-                <span style="color: #f87171;">Cancelled</span>
-              </span>
-            </td>
-            <td style="text-align: right;" id="b-actions-dabba">
-              <button 
-                type="button" 
-                class="btn btn-sm" 
-                style="background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4); padding: 4px 12px; font-size: 0.78rem;"
-                onclick="handleApprove('dabba')"
-              >
-                Re-approve
-              </button>
-            </td>
-          </tr>
+                <td style="font-weight: 700; font-size: 1rem;">
+                  <?= esc($b['room_name']) ?>
+                  <?php if (!empty($b['purpose'])): ?>
+                    <div style="font-size: 0.76rem; color: #94a3b8; font-weight: 400;"><?= esc($b['purpose']) ?></div>
+                  <?php endif; ?>
+                </td>
+                <td style="color: #cbd5e1;"><?= esc($instructorName) ?></td>
+                <td style="color: #cbd5e1;"><?= esc($timeRange) ?></td>
+                <td style="color: #cbd5e1;"><?= esc(date('M j, Y', strtotime($b['booking_date']))) ?></td>
+                <td>
+                  <span class="status-pill" id="b-status-<?= (int)$b['id'] ?>">
+                    <span class="status-dot <?= esc($dotClass) ?>"></span>
+                    <span style="color: <?= esc($pillColor) ?>; text-transform: capitalize;"><?= esc($b['status']) ?></span>
+                  </span>
+                </td>
+                <td style="text-align: right;" id="b-actions-<?= (int)$b['id'] ?>">
+                  <?php if ($st === 'pending'): ?>
+                    <div style="display: inline-flex; gap: 8px;">
+                      <form method="POST" action="<?= base_url('admin/bookings/approve/' . (int)$b['id']) ?>" style="display: inline;">
+                        <?= csrf_field() ?>
+                        <button 
+                          type="submit" 
+                          class="btn-icon-only" 
+                          style="background: #22c55e; color: #fff; border: none; cursor: pointer;" 
+                          title="Approve Booking"
+                        >
+                          ✓
+                        </button>
+                      </form>
+                      <form method="POST" action="<?= base_url('admin/bookings/reject/' . (int)$b['id']) ?>" style="display: inline;" onsubmit="return confirm('Reject this booking request?');">
+                        <?= csrf_field() ?>
+                        <button 
+                          type="submit" 
+                          class="btn-icon-only" 
+                          style="background: #ef4444; color: #fff; border: none; cursor: pointer;" 
+                          title="Reject Booking"
+                        >
+                          ✕
+                        </button>
+                      </form>
+                    </div>
+                  <?php elseif ($st === 'approved'): ?>
+                    <form method="POST" action="<?= base_url('admin/bookings/reject/' . (int)$b['id']) ?>" style="display: inline;" onsubmit="return confirm('Cancel this approved reservation?');">
+                      <?= csrf_field() ?>
+                      <button 
+                        type="submit" 
+                        class="btn btn-sm" 
+                        style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 4px 12px; font-size: 0.78rem; cursor: pointer;"
+                      >
+                        Cancel
+                      </button>
+                    </form>
+                  <?php else: ?>
+                    <form method="POST" action="<?= base_url('admin/bookings/approve/' . (int)$b['id']) ?>" style="display: inline;">
+                      <?= csrf_field() ?>
+                      <button 
+                        type="submit" 
+                        class="btn btn-sm" 
+                        style="background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4); padding: 4px 12px; font-size: 0.78rem; cursor: pointer;"
+                      >
+                        Re-approve
+                      </button>
+                    </form>
+                  <?php endif; ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <tr>
+              <td colspan="6" style="text-align: center; color: #94a3b8; padding: 40px 0;">
+                No bookings found matching the current criteria.
+              </td>
+            </tr>
+          <?php endif; ?>
         </tbody>
       </table>
     </div>
@@ -144,33 +174,29 @@
 
   <script src="<?= base_url('assets/js/main.js') ?>"></script>
   <script>
-    function handleApprove(id) {
-      document.getElementById('b-status-' + id).innerHTML = '<span class="status-dot dot-approved"></span><span style="color: #4ade80;">Approved</span>';
-      document.getElementById('b-actions-' + id).innerHTML = '<span style="color: #4ade80; font-size: 0.85rem; font-weight: 600;">Approved</span>';
-      showToast('Booking Approved!', 'success');
-    }
-
-    function handleCancel(id) {
-      document.getElementById('b-status-' + id).innerHTML = '<span class="status-dot dot-cancelled"></span><span style="color: #f87171;">Cancelled</span>';
-      document.getElementById('b-actions-' + id).innerHTML = '<span style="color: #f87171; font-size: 0.85rem; font-weight: 600;">Cancelled</span>';
-      showToast('Booking Cancelled.', 'error');
-    }
-
-    // Filter functionality
+    // Live filter functionality
     const searchInp = document.getElementById('bookingSearchInp');
     const statusSel = document.getElementById('bookingStatusSelect');
 
     function filterBookings() {
-      const q = searchInp.value.toLowerCase();
-      const s = statusSel.value;
+      const q = searchInp ? searchInp.value.toLowerCase().trim() : '';
+      const s = statusSel ? statusSel.value.toLowerCase() : 'all';
 
       document.querySelectorAll('#adminBookingsTable tbody tr').forEach(row => {
-        const room = row.dataset.room.toLowerCase();
-        const instructor = row.dataset.instructor.toLowerCase();
-        const status = row.dataset.status;
+        // Skip empty placeholder row if any
+        if (!row.dataset.room) return;
+
+        const room = (row.dataset.room || '').toLowerCase();
+        const instructor = (row.dataset.instructor || '').toLowerCase();
+        const status = (row.dataset.status || '').toLowerCase();
 
         const matchQ = !q || room.includes(q) || instructor.includes(q);
-        const matchS = s === 'all' || status === s;
+        let matchS = (s === 'all');
+        if (s === 'cancelled') {
+          matchS = (status === 'cancelled' || status === 'rejected');
+        } else if (s !== 'all') {
+          matchS = (status === s);
+        }
 
         if (matchQ && matchS) {
           row.style.display = '';
@@ -180,8 +206,8 @@
       });
     }
 
-    searchInp.addEventListener('input', filterBookings);
-    statusSel.addEventListener('change', filterBookings);
+    if (searchInp) searchInp.addEventListener('input', filterBookings);
+    if (statusSel) statusSel.addEventListener('change', filterBookings);
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmgXzuez/pHXEzlN77IfH8MRQ=" crossorigin="anonymous"></script>
 </body>

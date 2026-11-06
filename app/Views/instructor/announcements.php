@@ -19,36 +19,44 @@
         <h1>Campus Announcements</h1>
         <p class="subtitle">Important updates regarding campus facilities and classrooms</p>
       </div>
-      <a href="<?= base_url('instructor/bookings') ?>" class="btn btn-navy btn-sm">← Back</a>
+      <a href="<?= base_url('instructor/bookings') ?>" class="btn btn-navy btn-sm">← Back to My Bookings</a>
     </div>
 
     <!-- Pinned Announcement Banner -->
-    <div class="pinned-banner">
-      <div class="banner-tag">📌 Pinned announcement</div>
-      <p style="font-size: 1rem; font-weight: 600; color: #ffffff;">
-        Room DABBA closed for repairs Sept 8 – 15
-      </p>
-      <p style="font-size: 0.9rem; color: #cbd5e1; margin-top: 4px;">
-        Undergoing repairs (lighting, AC, or furniture). Please avoid scheduling classes in DABBA during this window.
-      </p>
-    </div>
+    <?php if (!empty($pinnedAnnouncement)): ?>
+      <div class="pinned-banner">
+        <div class="banner-tag">📌 Pinned announcement</div>
+        <p style="font-size: 1.05rem; font-weight: 700; color: #ffffff; margin-bottom: 6px;">
+          <?= esc($pinnedAnnouncement['title']) ?>
+        </p>
+        <p style="font-size: 0.92rem; color: #cbd5e1; margin-top: 4px; line-height: 1.5;">
+          <?= nl2br(esc($pinnedAnnouncement['message'])) ?>
+        </p>
+        <small style="color: #94a3b8; font-size: 0.8rem; display: block; margin-top: 8px;">
+          Published by <?= esc(trim(($pinnedAnnouncement['first_name'] ?? 'Admin') . ' ' . ($pinnedAnnouncement['last_name'] ?? ''))) ?> &bull; <?= date('M d, Y', strtotime($pinnedAnnouncement['created_at'])) ?>
+        </small>
+      </div>
+    <?php endif; ?>
 
     <div style="display: flex; flex-direction: column; gap: 16px;">
-      <div class="stat-card">
-        <div style="font-weight: 700; font-size: 1.1rem; color: #ffffff;">Midterm Examination Room Assignments</div>
-        <p style="font-size: 0.9rem; color: #cbd5e1; margin: 6px 0 10px;">
-          CET faculty are reminded that Computer Labs A and D are reserved exclusively for hands-on programming exams from Oct 28 to Nov 3.
-        </p>
-        <small style="color: #94a3b8;">Posted by Administrator &bull; 2 days ago</small>
-      </div>
-
-      <div class="stat-card">
-        <div style="font-weight: 700; font-size: 1.1rem; color: #ffffff;">Air Conditioning Maintenance in Psychology Wing</div>
-        <p style="font-size: 0.9rem; color: #cbd5e1; margin: 6px 0 10px;">
-          Scheduled maintenance for Room 101 and 102 cooling units this Saturday from 8:00 AM to 12:00 PM.
-        </p>
-        <small style="color: #94a3b8;">Posted by Facilities Dept &bull; 4 days ago</small>
-      </div>
+      <?php if (!empty($announcements)): ?>
+        <?php foreach ($announcements as $ann): ?>
+          <?php if (!empty($pinnedAnnouncement) && (int)$ann['id'] === (int)$pinnedAnnouncement['id']) continue; ?>
+          <div class="stat-card" style="display: block; padding: 22px 28px;">
+            <div style="font-weight: 700; font-size: 1.1rem; color: #ffffff;"><?= esc($ann['title']) ?></div>
+            <p style="font-size: 0.92rem; color: #cbd5e1; margin: 8px 0 12px; line-height: 1.5;">
+              <?= nl2br(esc($ann['message'])) ?>
+            </p>
+            <small style="color: #94a3b8; font-size: 0.8rem;">
+              Posted by <?= esc(trim(($ann['first_name'] ?? 'Administration') . ' ' . ($ann['last_name'] ?? ''))) ?> &bull; <?= date('M d, Y', strtotime($ann['created_at'])) ?>
+            </small>
+          </div>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <div class="stat-card" style="text-align: center; color: #94a3b8; padding: 32px;">
+          No announcements published at this time.
+        </div>
+      <?php endif; ?>
     </div>
   </main>
 
