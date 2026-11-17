@@ -35,7 +35,11 @@ class Instructor extends BaseController
         $userId = (int) session()->get('user_id');
         $statusFilter = $this->request->getGet('status') ?? 'all';
 
-        $bookings = $this->bookingModel->getBookingsByUser($userId, $statusFilter);
+        // Detect overtime status and ongoing sessions without auto-marking completed
+        $this->bookingModel->detectOvertimeBookings();
+
+        // Fetch all bookings for this user to allow seamless client-side filtering without missing records
+        $bookings = $this->bookingModel->getBookingsByUser($userId, null);
 
         return view('instructor/bookings', [
             'title'        => 'My Bookings - CPC RoomFinder',
@@ -53,6 +57,9 @@ class Instructor extends BaseController
         if ($this->request->getGet('form') === '1') {
             return $this->bookRoom();
         }
+
+        // Detect overtime status and ongoing sessions
+        $this->bookingModel->detectOvertimeBookings();
 
         $keyword = $this->request->getGet('q');
         $dept = $this->request->getGet('department');
@@ -136,14 +143,21 @@ class Instructor extends BaseController
         $startTime = date('H:i:s', strtotime((string) $this->request->getPost('start_time')));
         $endTime = date('H:i:s', strtotime((string) $this->request->getPost('end_time')));
 
-        // Rule: booking date cannot be in the past
+        // Rule: booking date cannot be in the past (advance bookings for future dates are allowed)
         if ($bookingDate < date('Y-m-d')) {
             return redirect()->back()->withInput()->with('error', 'Booking date cannot be in the past.');
         }
 
-        // Rule: start_time must be strictly earlier than end_time
+        // Rule: start_time must be strictly earlier than end_time (rejects crossing midnight or equal times)
         if ($startTime >= $endTime) {
             return redirect()->back()->withInput()->with('error', 'End time must be after the start time.');
+        }
+
+        // Rule: operating hours must strictly be between 7:00 AM and 9:00 PM
+        $openingTime = '07:00:00';
+        $closingTime = '21:00:00';
+        if ($startTime < $openingTime || $startTime >= $closingTime || $endTime <= $openingTime || $endTime > $closingTime) {
+            return redirect()->back()->withInput()->with('error', 'Invalid booking time. Please select a schedule between 7:00 AM and 9:00 PM.');
         }
 
         // CONFLICT CHECK ALGORITHM:
@@ -175,6 +189,51 @@ class Instructor extends BaseController
     {
         $userId = (int) session()->get('user_id');
         $result = $this->bookingModel->cancelBooking($id, $userId);
+
+        if ($result['success']) {
+            return redirect()->to(base_url('instructor/bookings'))->with('success', $result['message']);
+        }
+
+        return redirect()->to(base_url('instructor/bookings'))->with('error', $result['message']);
+    }
+
+    /**
+     * Confirm Room Vacated (POST /instructor/bookings/vacate/(:num))
+     */
+    public function confirmVacated(int $id)
+    {
+        $userId = (int) session()->get('user_id');
+        $result = $this->bookingModel->confirmRoomVacated($id, $userId, false);
+
+        if ($result['success']) {
+            return redirect()->to(base_url('instructor/bookings'))->with('success', $result['message']);
+        }
+
+        return redirect()->to(base_url('instructor/bookings'))->with('error', $result['message']);
+    }
+
+    /**
+     * Request Extension (POST /instructor/bookings/extend/(:num))
+     */
+    public function requestExtension(int $id)
+    {
+        $userId = (int) session()->get('user_id');
+        $requestedTime = (string) $this->request->getPost('requested_end_time');
+        $reason = (string) $this->request->getPost('reason');
+
+        if (empty($requestedTime)) {
+            return redirect()->to(base_url('instructor/bookings'))->with('error', 'Please provide a valid requested end time.');
+        }
+
+        $formattedTime = date('H:i:s', strtotime($requestedTime));
+
+        // Rule: Extension cannot extend beyond school operating hours (closing at 9:00 PM)
+        if ($formattedTime > '21:00:00' || $formattedTime <= '07:00:00') {
+            return redirect()->to(base_url('instructor/bookings'))
+                ->with('error', "Extension cannot exceed 9:00 PM. Classes cannot extend beyond the school's operating hours (7:00 AM – 9:00 PM).");
+        }
+
+        $result = $this->bookingModel->requestExtension($id, $userId, $formattedTime, $reason);
 
         if ($result['success']) {
             return redirect()->to(base_url('instructor/bookings'))->with('success', $result['message']);

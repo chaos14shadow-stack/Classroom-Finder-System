@@ -45,6 +45,9 @@ class Student extends BaseController
      */
     public function rooms(): string
     {
+        // Safe check to detect any ongoing overtime sessions before student room search
+        (new \App\Models\BookingModel())->detectOvertimeBookings();
+
         $keyword = $this->request->getGet('q');
         $dept = $this->request->getGet('department');
         $capacity = $this->request->getGet('capacity') ? (int) $this->request->getGet('capacity') : null;

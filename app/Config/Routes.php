@@ -47,6 +47,8 @@ $routes->group('instructor', ['filter' => 'role:instructor'], static function ($
     $routes->get('book/form', 'Instructor::bookRoom');
     $routes->post('book', 'Instructor::storeBooking');
     $routes->post('bookings/cancel/(:num)', 'Instructor::cancelBooking/$1');
+    $routes->post('bookings/vacate/(:num)', 'Instructor::confirmVacated/$1');
+    $routes->post('bookings/extend/(:num)', 'Instructor::requestExtension/$1');
     $routes->get('announcements', 'Instructor::announcements');
     $routes->get('profile', 'Instructor::profile');
 });
@@ -68,10 +70,16 @@ $routes->group('admin', ['filter' => 'role:admin'], static function ($routes) {
     $routes->post('users/toggle/(:num)', 'Admin::toggleUserStatus/$1');
     $routes->post('users/change-role/(:num)', 'Admin::changeUserRole/$1');
 
-    // Booking Moderation
+    // Booking Moderation & Overtime Management
     $routes->get('bookings', 'Admin::bookings');
     $routes->post('bookings/approve/(:num)', 'Admin::approveBooking/$1');
     $routes->post('bookings/reject/(:num)', 'Admin::rejectBooking/$1');
+    $routes->post('bookings/vacate/(:num)', 'Admin::forceVacate/$1');
+    $routes->post('bookings/complete-return/(:num)', 'Admin::completeReturn/$1');
+    $routes->post('bookings/approve-extension/(:num)', 'Admin::approveExtension/$1');
+    $routes->post('bookings/reject-extension/(:num)', 'Admin::rejectExtension/$1');
+    $routes->post('bookings/reassign/(:num)', 'Admin::reassignBooking/$1');
+    $routes->post('settings/buffer', 'Admin::updateTransitionBuffer');
 
     // Announcement Management CRUD
     $routes->get('announcements', 'Admin::announcements');
