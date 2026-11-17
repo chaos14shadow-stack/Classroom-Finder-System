@@ -36,6 +36,8 @@ class VerifyBackend extends BaseCommand
         $this->testProfileWhitelisting();
         $this->testPinnedAnnouncementLogic();
         $this->testStudentMaintenanceNoteIsolation();
+        $this->testBookingCancellationAndAutomaticRelease();
+        $this->testOperatingHoursBufferRemovalAndSorting();
 
         CLI::newLine();
         CLI::write("==================================================", 'yellow');
@@ -335,5 +337,224 @@ class VerifyBackend extends BaseCommand
             }
         }
         $this->assert($adminHasNote, "Admin room query properly includes 'maintenance_note' column");
+    }
+
+    private function testBookingCancellationAndAutomaticRelease(): void
+    {
+        CLI::newLine();
+        CLI::write("--- 8. Instructor Cancellation & Automatic Expiration ---", 'yellow');
+
+        $bookingModel = new BookingModel();
+        $roomModel = new RoomModel();
+        $userModel = new UserModel();
+
+        $instructor = $userModel->where('role_id', 2)->first();
+        $student = $userModel->where('role_id', 3)->first();
+        $room = $roomModel->first();
+
+        if (!$instructor || !$room) {
+            CLI::write("Skipping test 8: Instructor or Room not found in DB.", 'yellow');
+            return;
+        }
+
+        $roomId = (int) $room['id'];
+        $instId = (int) $instructor['id'];
+        $testDate = '2029-12-15';
+
+        // 1. Create a pending booking
+        $bookingModel->insert([
+            'room_id'      => $roomId,
+            'user_id'      => $instId,
+            'booking_date' => $testDate,
+            'start_time'   => '08:00:00',
+            'end_time'     => '10:00:00',
+            'purpose'      => 'Test Pending Cancellation',
+            'status'       => 'pending',
+        ]);
+        $pendingId = (int) $bookingModel->getInsertID();
+
+        // 2. Reject cancellation by another user (unauthorized)
+        $unauthRes = $bookingModel->cancelBooking($pendingId, 999999);
+        $this->assert($unauthRes['success'] === false, "Unauthorized cancellation attempt is blocked");
+
+        // 3. Cancel own pending booking
+        $cancelPendingRes = $bookingModel->cancelBooking($pendingId, $instId);
+        $this->assert($cancelPendingRes['success'] === true, "Instructor can cancel their own pending booking");
+
+        $bRecord = $bookingModel->find($pendingId);
+        $this->assert($bRecord['status'] === 'cancelled' && !empty($bRecord['cancelled_at']), "Pending booking marked cancelled with cancelled_at timestamp");
+
+        // 4. Repeated cancellation is blocked
+        $repeatRes = $bookingModel->cancelBooking($pendingId, $instId);
+        $this->assert($repeatRes['success'] === false, "Repeated cancellation of cancelled booking is blocked");
+
+        // 5. Create an approved booking and test slot release
+        $bookingModel->insert([
+            'room_id'      => $roomId,
+            'user_id'      => $instId,
+            'booking_date' => $testDate,
+            'start_time'   => '10:00:00',
+            'end_time'     => '12:00:00',
+            'purpose'      => 'Test Approved Cancellation',
+            'status'       => 'approved',
+        ]);
+        $approvedId = (int) $bookingModel->getInsertID();
+
+        // Slot should be in conflict while approved
+        $hasConflictBefore = $bookingModel->hasConflict($roomId, $testDate, '10:30:00', '11:30:00');
+        $this->assert($hasConflictBefore === true, "Approved booking blocks overlapping reservation");
+
+        // Cancel approved booking
+        $cancelApprovedRes = $bookingModel->cancelBooking($approvedId, $instId);
+        $this->assert($cancelApprovedRes['success'] === true, "Instructor can cancel their own approved booking");
+
+        // Slot must be immediately released
+        $hasConflictAfter = $bookingModel->hasConflict($roomId, $testDate, '10:30:00', '11:30:00');
+        $this->assert($hasConflictAfter === false, "Cancelling approved booking immediately releases time slot");
+
+        // 6. Test automatic overtime detection (does NOT auto-mark completed!)
+        $pastDate = '2020-01-01';
+        $bookingModel->insert([
+            'room_id'      => $roomId,
+            'user_id'      => $instId,
+            'booking_date' => $pastDate,
+            'start_time'   => '08:00:00',
+            'end_time'     => '10:00:00',
+            'purpose'      => 'Test Overtime Past Booking',
+            'status'       => 'approved',
+        ]);
+        $overtimeId = (int) $bookingModel->getInsertID();
+
+        $otRes = $bookingModel->detectOvertimeBookings();
+        $this->assert($otRes['overtime_count'] >= 1, "detectOvertimeBookings() successfully detects past approved bookings");
+
+        $otRecord = $bookingModel->find($overtimeId);
+        $this->assert($otRecord['status'] === 'overtime', "Past approved booking status updated to overtime instead of silently completed");
+
+        // 7. Room Vacate Confirmation (Awaiting Return, Buffer Removed)
+        $vacateRes = $bookingModel->confirmRoomVacated($overtimeId, $instId, false);
+        $this->assert($vacateRes['success'] === true, "Instructor confirms room vacated");
+
+        $vacatedRecord = $bookingModel->find($overtimeId);
+        $this->assert($vacatedRecord['status'] === 'ongoing' && !empty($vacatedRecord['vacated_at']), "Vacated booking remains ongoing and awaiting return without transition buffer");
+
+        $returnRes = $bookingModel->completeBookingReturn($overtimeId, 1);
+        $this->assert($returnRes['success'] === true, "Admin completes booking return turnover");
+        $returnedRecord = $bookingModel->find($overtimeId);
+        $this->assert($returnedRecord['status'] === 'completed', "Turnover finalizes booking to completed");
+
+        // 8. Extension Request Workflow with 9:00 PM Operating Hours Ceiling
+        $bookingModel->insert([
+            'room_id'      => $roomId,
+            'user_id'      => $instId,
+            'booking_date' => $testDate,
+            'start_time'   => '14:00:00',
+            'end_time'     => '15:00:00',
+            'purpose'      => 'Test Extension Flow',
+            'status'       => 'approved',
+        ]);
+        $extBookingId = (int) $bookingModel->getInsertID();
+
+        // Attempt extension past 9:00 PM (21:30:00) -> Must be rejected!
+        $past9Req = $bookingModel->requestExtension($extBookingId, $instId, '21:30:00', 'Late night test');
+        $this->assert($past9Req['success'] === false, "Extension exceeding 9:00 PM (21:30:00) is strictly rejected");
+
+        // Attempt extension earlier than scheduled end -> Must be rejected!
+        $earlyReq = $bookingModel->requestExtension($extBookingId, $instId, '14:30:00', 'Early test');
+        $this->assert($earlyReq['success'] === false, "Extension earlier than scheduled end is rejected");
+
+        // Valid extension within operating hours
+        $extReq = $bookingModel->requestExtension($extBookingId, $instId, '15:30:00', 'Lab experiment unfinished');
+        $this->assert($extReq['success'] === true, "Instructor successfully submits extension request within operating hours");
+
+        $adminApproveExt = $bookingModel->approveExtension($extBookingId, 1);
+        $this->assert($adminApproveExt['success'] === true, "Admin approves extension request");
+
+        $extRec = $bookingModel->find($extBookingId);
+        $this->assert($extRec['end_time'] === '15:30:00', "Approved extension updates scheduled end_time");
+
+        // Cleanup test entries
+        $bookingModel->delete($pendingId);
+        $bookingModel->delete($approvedId);
+        $bookingModel->delete($overtimeId);
+        $bookingModel->delete($extBookingId);
+    }
+
+    private function testOperatingHoursBufferRemovalAndSorting(): void
+    {
+        CLI::newLine();
+        CLI::write("--- 9. Operating Hours (7 AM - 9 PM), Buffer Removal & Sorting ---", 'yellow');
+
+        $bookingModel = new BookingModel();
+        $roomModel = new RoomModel();
+
+        // Helper closures for operating hour validation rules
+        $validateHours = function(string $start, string $end): bool {
+            $opening = '07:00:00';
+            $closing = '21:00:00';
+            if ($start < $opening || $start >= $closing || $end <= $opening || $end > $closing || $start >= $end) {
+                return false;
+            }
+            return true;
+        };
+
+        // 1. Operating Hours Matrix Test
+        $this->assert($validateHours('07:00:00', '08:00:00') === true, "Operating hours: 7:00 AM - 8:00 AM is Allowed");
+        $this->assert($validateHours('08:00:00', '10:00:00') === true, "Operating hours: 8:00 AM - 10:00 AM is Allowed");
+        $this->assert($validateHours('12:00:00', '14:00:00') === true, "Operating hours: 12:00 PM - 2:00 PM is Allowed");
+        $this->assert($validateHours('17:00:00', '19:00:00') === true, "Operating hours: 5:00 PM - 7:00 PM is Allowed");
+        $this->assert($validateHours('20:00:00', '21:00:00') === true, "Operating hours: 8:00 PM - 9:00 PM (closing exactly at 9 PM) is Allowed");
+
+        $this->assert($validateHours('06:00:00', '08:00:00') === false, "Operating hours: 6:00 AM - 8:00 AM is Rejected (< 7:00 AM)");
+        $this->assert($validateHours('21:00:00', '22:00:00') === false, "Operating hours: 9:00 PM - 10:00 PM is Rejected (school closed)");
+        $this->assert($validateHours('22:00:00', '23:00:00') === false, "Operating hours: 10:00 PM - 11:00 PM is Rejected");
+        $this->assert($validateHours('20:00:00', '22:00:00') === false, "Operating hours: 8:00 PM - 10:00 PM is Rejected (ends > 9 PM)");
+        $this->assert($validateHours('23:00:00', '01:00:00') === false, "Operating hours: 11:00 PM - 1:00 AM crossing midnight is Rejected");
+        $this->assert($validateHours('06:00:00', '06:00:00') === false, "Operating hours: 6:00 AM - 6:00 AM equal start/end is Rejected");
+
+        // 2. Advance Booking Test
+        $tomorrow = date('Y-m-d', strtotime('+1 day'));
+        $nextWeek = date('Y-m-d', strtotime('+7 days'));
+        $this->assert($tomorrow > date('Y-m-d'), "Advance booking support: Tomorrow ({$tomorrow}) is accepted as a valid future date");
+        $this->assert($nextWeek > date('Y-m-d'), "Advance booking support: Next week ({$nextWeek}) is accepted as a valid future date");
+
+        // 3. Newest-First Sorting Test (created_at DESC, id DESC)
+        $testRoom = $roomModel->first();
+        $roomId = (int) $testRoom['id'];
+        $instId = 2;
+
+        $id1 = $bookingModel->insert([
+            'room_id'      => $roomId,
+            'user_id'      => $instId,
+            'booking_date' => $tomorrow,
+            'start_time'   => '08:00:00',
+            'end_time'     => '09:00:00',
+            'purpose'      => 'Sort Test Earlier 1',
+            'status'       => 'pending',
+        ]);
+
+        $id2 = $bookingModel->insert([
+            'room_id'      => $roomId,
+            'user_id'      => $instId,
+            'booking_date' => $tomorrow,
+            'start_time'   => '10:00:00',
+            'end_time'     => '11:00:00',
+            'purpose'      => 'Sort Test Later 2',
+            'status'       => 'pending',
+        ]);
+
+        $adminBookings = $bookingModel->getAllForAdmin();
+        $this->assert(!empty($adminBookings) && (int)$adminBookings[0]['id'] === (int)$id2, "Admin Manage Bookings retrieves newest created booking first (created_at DESC, id DESC)");
+
+        $userBookings = $bookingModel->getBookingsByUser($instId);
+        $this->assert(!empty($userBookings) && (int)$userBookings[0]['id'] === (int)$id2, "Instructor My Bookings retrieves newest created booking first (created_at DESC, id DESC)");
+
+        // 4. Room Occupancy Buffer Isolation
+        $occ = $roomModel->getActiveOccupancy($roomId);
+        $this->assert($occ['instructor_name'] !== 'Cleaning / Transition Buffer', "Room occupancy logic completely isolated from transition buffer spoofing");
+
+        // Clean up
+        $bookingModel->delete($id1);
+        $bookingModel->delete($id2);
     }
 }

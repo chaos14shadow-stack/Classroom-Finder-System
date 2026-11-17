@@ -225,6 +225,8 @@
                 id="startTimeInput" 
                 name="start_time" 
                 value="<?= esc(old('start_time', '08:00')) ?>"
+                min="07:00"
+                max="21:00"
                 required
               >
             </div>
@@ -239,13 +241,15 @@
                 id="endTimeInput" 
                 name="end_time" 
                 value="<?= esc(old('end_time', '10:00')) ?>"
+                min="07:00"
+                max="21:00"
                 required
               >
             </div>
           </div>
 
           <div style="font-size: 0.82rem; color: #94a3b8; padding-bottom: 10px;">
-            Free-entry 24-hr time slot. Real-time overlap conflict check enforced.
+            Allowed hours: 7:00 AM – 9:00 PM.
           </div>
         </div>
 

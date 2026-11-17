@@ -33,6 +33,9 @@
           <option value="all" <?= ($statusFilter ?? '') === 'all' ? 'selected' : '' ?>>STATUS ▾</option>
           <option value="pending" <?= ($statusFilter ?? '') === 'pending' ? 'selected' : '' ?>>Pending</option>
           <option value="approved" <?= ($statusFilter ?? '') === 'approved' ? 'selected' : '' ?>>Approved</option>
+          <option value="ongoing" <?= ($statusFilter ?? '') === 'ongoing' ? 'selected' : '' ?>>Ongoing</option>
+          <option value="overtime" <?= ($statusFilter ?? '') === 'overtime' ? 'selected' : '' ?>>Overtime</option>
+          <option value="completed" <?= ($statusFilter ?? '') === 'completed' ? 'selected' : '' ?>>Completed</option>
           <option value="rejected" <?= ($statusFilter ?? '') === 'rejected' ? 'selected' : '' ?>>Rejected</option>
           <option value="cancelled" <?= ($statusFilter ?? '') === 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
         </select>
@@ -68,13 +71,20 @@
           <?php if (!empty($bookings)): ?>
             <?php foreach ($bookings as $b): ?>
               <?php
-              $dotClass = match(strtolower($b['status'])) {
-                  'approved'  => 'dot-approved',
-                  'pending'   => 'dot-pending',
-                  default     => 'dot-cancelled',
+              $st = strtolower($b['status']);
+              $dotClass = match($st) {
+                  'approved'                          => 'dot-approved',
+                  'completed'                         => 'dot-approved',
+                  'cancelled', 'rejected', 'overtime' => 'dot-cancelled',
+                  default                             => 'dot-pending', // pending, ongoing, extension_requested
+              };
+              $dotStyle = ($st === 'completed') ? 'style="background: var(--cpc-cyan);"' : '';
+              $statusDisplay = match($st) {
+                  'ongoing' => (!empty($b['vacated_at'])) ? 'Ongoing (Vacated)' : 'Ongoing',
+                  default   => ucwords(str_replace('_', ' ', $st)),
               };
               ?>
-              <tr data-status="<?= esc(strtolower($b['status'])) ?>">
+              <tr data-status="<?= esc($st) ?>">
                 <td style="font-weight: 700; font-size: 1rem;">
                   <?= esc($b['room_name']) ?>
                   <div style="font-size: 0.78rem; color: #94a3b8; font-weight: normal;">
@@ -84,34 +94,78 @@
                 <td style="color: #cbd5e1;"><?= date('M j, Y', strtotime($b['booking_date'])) ?></td>
                 <td style="color: #cbd5e1; font-weight: 600;">
                   <?= date('g:i A', strtotime($b['start_time'])) ?> – <?= date('g:i A', strtotime($b['end_time'])) ?>
+                  <?php if (!empty($b['requested_end_time'])): ?>
+                    <div style="font-size: 0.72rem; color: #f59e0b;">Requested ext: <?= date('g:i A', strtotime($b['requested_end_time'])) ?></div>
+                  <?php endif; ?>
+                  <?php if (!empty($b['vacated_at'])): ?>
+                    <div style="font-size: 0.72rem; color: #38bdf8;">Vacated: <?= date('g:i A', strtotime($b['vacated_at'])) ?></div>
+                  <?php endif; ?>
                 </td>
-                <td style="color: #cbd5e1;"><?= esc($b['purpose']) ?></td>
+                <td style="color: #cbd5e1;">
+                  <?= esc($b['purpose']) ?>
+                  <?php if (!empty($b['is_delayed'])): ?>
+                    <span class="badge" style="background: rgba(239,68,68,0.2); color: #fca5a5; font-size: 0.7rem; display: block; margin-top: 4px;">⚠️ Room potentially delayed by previous class</span>
+                  <?php endif; ?>
+                </td>
                 <td>
                   <span class="status-pill">
-                    <span class="status-dot <?= esc($dotClass) ?>"></span>
-                    <span style="text-transform: capitalize;"><?= esc($b['status']) ?></span>
+                    <span class="status-dot <?= esc($dotClass) ?>" <?= $dotStyle ?>></span>
+                    <span style="color: #ffffff; text-transform: capitalize; font-weight: 600;">
+                      <?= esc($statusDisplay) ?>
+                    </span>
                   </span>
                 </td>
                 <td style="text-align: right;">
-                  <?php if (in_array(strtolower($b['status']), ['pending', 'approved'], true)): ?>
-                    <form 
-                      method="POST" 
-                      action="<?= base_url('instructor/bookings/cancel/' . $b['id']) ?>" 
-                      style="display: inline;" 
-                      onsubmit="return confirm('Are you sure you want to cancel this booking request?');"
-                    >
-                      <?= csrf_field() ?>
+                  <div style="display: inline-flex; gap: 8px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
+                    <!-- 1. Confirm Room Vacated (Eligible for active or overdue/overtime bookings) -->
+                    <?php if (in_array($st, ['approved', 'ongoing', 'overtime', 'extension_requested'], true) && empty($b['vacated_at']) && $b['booking_date'] === date('Y-m-d')): ?>
+                      <form method="POST" action="<?= base_url('instructor/bookings/vacate/' . $b['id']) ?>" style="display: inline;" onsubmit="return confirm('Confirm that you have vacated this classroom?');">
+                        <?= csrf_field() ?>
+                        <button 
+                          type="submit" 
+                          class="btn btn-sm" 
+                          style="background: #22c55e; color: #ffffff; border-radius: var(--radius-pill); font-size: 0.76rem; font-weight: 700; padding: 4px 12px; border: none;"
+                          title="Confirm that you have vacated this room"
+                        >
+                          ✓ Confirm Vacated
+                        </button>
+                      </form>
+                    <?php endif; ?>
+
+                    <!-- 2. Request Extension (For ongoing or overtime bookings) -->
+                    <?php if (in_array($st, ['approved', 'ongoing', 'overtime'], true) && $b['booking_date'] === date('Y-m-d')): ?>
                       <button 
-                        type="submit" 
+                        type="button" 
                         class="btn btn-sm" 
-                        style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; border-radius: var(--radius-pill); font-size: 0.78rem; font-weight: 700; padding: 4px 14px;"
+                        style="background: rgba(245,158,11,0.2); border: 1px solid rgba(245,158,11,0.4); color: #fcd34d; border-radius: var(--radius-pill); font-size: 0.76rem; font-weight: 700; padding: 4px 10px;"
+                        onclick="openExtensionModal(<?= (int)$b['id'] ?>, '<?= esc($b['room_name']) ?>', '<?= esc($b['end_time']) ?>')"
+                        title="Request extension if your class is running overtime"
                       >
-                        Cancel
+                        ⏱️ Extend
                       </button>
-                    </form>
-                  <?php else: ?>
-                    <span style="color: #64748b; font-size: 0.85rem;">—</span>
-                  <?php endif; ?>
+                    <?php endif; ?>
+
+                    <!-- 3. Cancel (Pending or Future Approved) -->
+                    <?php if (in_array($st, ['pending', 'approved'], true)): ?>
+                      <form 
+                        method="POST" 
+                        action="<?= base_url('instructor/bookings/cancel/' . $b['id']) ?>" 
+                        style="display: inline;" 
+                        onsubmit="return confirm('Are you sure you want to cancel this booking request?');"
+                      >
+                        <?= csrf_field() ?>
+                        <button 
+                          type="submit" 
+                          class="btn btn-sm" 
+                          style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; border-radius: var(--radius-pill); font-size: 0.76rem; font-weight: 700; padding: 4px 10px;"
+                        >
+                          Cancel
+                        </button>
+                      </form>
+                    <?php elseif (!in_array($st, ['ongoing', 'overtime', 'extension_requested'], true)): ?>
+                      <span style="color: #64748b; font-size: 0.85rem;">—</span>
+                    <?php endif; ?>
+                  </div>
                 </td>
               </tr>
             <?php endforeach; ?>
@@ -128,22 +182,103 @@
 
   </main>
 
+  <!-- REQUEST EXTENSION MODAL -->
+  <div class="cpc-modal-backdrop" id="extensionModal" role="dialog" aria-modal="true">
+    <div class="cpc-modal-dialog">
+      <button type="button" class="modal-close-btn" data-modal-close>&times;</button>
+      <h2 class="modal-title" style="text-align: left; font-size: 1.35rem;">⏱️ Request Time Extension</h2>
+      <p style="font-size: 0.85rem; color: #94a3b8; margin: -10px 0 20px;">
+        If your class or examination in <strong id="modalRoomName" style="color: #fff;">Room</strong> is running overtime, select a new end time for administrator review.
+      </p>
+
+      <form id="extensionForm" method="POST" action="">
+        <?= csrf_field() ?>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="font-size: 0.85rem; color: #cbd5e1;">Proposed New End Time:</label>
+          <input 
+            type="time" 
+            name="requested_end_time" 
+            id="modalReqTime"
+            min="07:00"
+            max="21:00"
+            class="form-input" 
+            required 
+            style="border-radius: var(--radius-md); background: #0f1542; color: #fff; border: 1px solid rgba(255,255,255,0.15);"
+          >
+          <small style="color: #94a3b8; font-size: 0.75rem;">Must be later than scheduled end (<span id="modalCurrentEnd" style="color: #cbd5e1; font-weight: 700;"></span>) and cannot exceed 9:00 PM.</small>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 24px;">
+          <label style="font-size: 0.85rem; color: #cbd5e1;">Reason for Extension (Optional):</label>
+          <input 
+            type="text" 
+            name="reason" 
+            placeholder="e.g. Practical examination running late, lab experiment in progress" 
+            class="form-input" 
+            style="border-radius: var(--radius-md); background: #0f1542; color: #fff; border: 1px solid rgba(255,255,255,0.15);"
+          >
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn btn-navy" data-modal-close>Cancel</button>
+          <button type="submit" class="btn btn-orange">Submit Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="<?= base_url('assets/js/main.js') ?>"></script>
   <script>
+    function openExtensionModal(bookingId, roomName, currentEnd) {
+      document.getElementById('modalRoomName').textContent = roomName;
+      document.getElementById('modalCurrentEnd').textContent = currentEnd;
+      document.getElementById('extensionForm').action = '<?= base_url('instructor/bookings/extend/') ?>' + bookingId;
+      const reqInput = document.getElementById('modalReqTime');
+      reqInput.min = currentEnd;
+      reqInput.max = '21:00';
+      openModal(document.getElementById('extensionModal'));
+    }
+
     const bFilter = document.getElementById('bookingStatusFilter');
-    if (bFilter) {
-      bFilter.addEventListener('change', (e) => {
-        const val = e.target.value.toLowerCase();
-        document.querySelectorAll('#instructorBookingsTable tbody tr').forEach(row => {
-          if (!row.dataset.status) return;
-          if (val === 'all' || row.dataset.status === val) {
-            row.style.display = '';
-          } else {
-            row.style.display = 'none';
-          }
-        });
+    function filterInstructorBookings() {
+      const val = bFilter ? bFilter.value.toLowerCase() : 'all';
+      document.querySelectorAll('#instructorBookingsTable tbody tr').forEach(row => {
+        if (!row.dataset.status) return;
+        const status = row.dataset.status.toLowerCase();
+        let match = (val === 'all');
+        if (val === 'ongoing') {
+          match = (status === 'ongoing' || status === 'vacated');
+        } else if (val === 'cancelled') {
+          match = (status === 'cancelled' || status === 'rejected');
+        } else if (val !== 'all') {
+          match = (status === val);
+        }
+
+        if (match) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
       });
     }
+
+    if (bFilter) {
+      bFilter.addEventListener('change', function() {
+        filterInstructorBookings();
+        const val = bFilter.value.toLowerCase();
+        const url = new URL(window.location.href);
+        if (val === 'all') {
+          url.searchParams.delete('status');
+        } else {
+          url.searchParams.set('status', val);
+        }
+        window.history.replaceState({}, '', url.toString());
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', filterInstructorBookings);
+    filterInstructorBookings();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmgXzuez/pHXEzlN77IfH8MRQ=" crossorigin="anonymous"></script>
 </body>

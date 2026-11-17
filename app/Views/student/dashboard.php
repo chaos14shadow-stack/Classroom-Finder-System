@@ -12,15 +12,6 @@
       min-height: 100vh;
       background: linear-gradient(135deg, #1b2668 0%, #101646 50%, #090c29 100%);
     }
-    .student-sidebar {
-      width: 280px;
-      background: #11184c;
-      padding: 32px 20px;
-      display: flex;
-      flex-direction: column;
-      border-right: 1px solid rgba(255, 255, 255, 0.08);
-      flex-shrink: 0;
-    }
     .student-main {
       flex: 1;
       display: flex;
@@ -92,11 +83,6 @@
       .student-layout {
         flex-direction: column;
       }
-      .student-sidebar {
-        width: 100%;
-        border-right: none;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
-      }
       .student-main {
         padding: 24px 20px;
       }
@@ -115,48 +101,7 @@
 
   <div class="student-layout">
     <!-- Student Sidebar -->
-    <aside class="student-sidebar">
-      <div class="sidebar-profile" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; margin-bottom: 28px;">
-        <div class="profile-avatar"><?= esc($avatar) ?></div>
-        <div class="profile-info">
-          <div class="profile-name"><?= esc($userName) ?></div>
-          <div class="profile-role">Student</div>
-        </div>
-        <a href="<?= base_url('profile') ?>" class="profile-edit-btn" title="Edit Profile" aria-label="Edit Profile" style="display:inline-flex; align-items:center; justify-content:center; text-decoration:none;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 20h9"></path>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-          </svg>
-        </a>
-      </div>
-
-      <nav class="sidebar-nav">
-        <a href="<?= base_url('student/rooms') ?>" class="nav-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <span>Find rooms</span>
-        </a>
-
-        <a href="<?= base_url('student/announcements') ?>" class="nav-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-          </svg>
-          <span>Announcements</span>
-        </a>
-
-        <a href="#systemInfoModal" data-modal-open="sysInfoModal" class="nav-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-          </svg>
-          <span>System information</span>
-        </a>
-      </nav>
-    </aside>
+    <?= view('partials/student_sidebar', ['activeNav' => 'home']) ?>
 
     <!-- Student Main Screen -->
     <main class="student-main">

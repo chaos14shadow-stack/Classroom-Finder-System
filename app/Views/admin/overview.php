@@ -90,11 +90,14 @@
             <?php if (!empty($recentBookings)): ?>
               <?php foreach ($recentBookings as $b): ?>
                 <?php
-                $dotClass = match(strtolower($b['status'])) {
-                    'approved'  => 'dot-approved',
-                    'pending'   => 'dot-pending',
-                    default     => 'dot-cancelled',
+                $st = strtolower($b['status']);
+                $dotClass = match($st) {
+                    'approved'                          => 'dot-approved',
+                    'completed'                         => 'dot-approved',
+                    'cancelled', 'rejected', 'overtime' => 'dot-cancelled',
+                    default                             => 'dot-pending', // pending, ongoing, extension_requested
                 };
+                $dotStyle = ($st === 'completed') ? 'style="background: var(--cpc-cyan);"' : '';
                 $instructorName = trim(($b['first_name'] ?? '') . ' ' . ($b['last_name'] ?? ''));
                 ?>
                 <tr>
@@ -106,8 +109,8 @@
                   <td style="color: #cbd5e1;"><?= date('M j', strtotime($b['booking_date'])) ?></td>
                   <td>
                     <span class="status-pill">
-                      <span class="status-dot <?= esc($dotClass) ?>"></span>
-                      <span style="text-transform: capitalize;"><?= esc($b['status']) ?></span>
+                      <span class="status-dot <?= esc($dotClass) ?>" <?= $dotStyle ?>></span>
+                      <span style="color: #ffffff; text-transform: capitalize; font-weight: 600;"><?= esc(str_replace('_', ' ', $st)) ?></span>
                     </span>
                   </td>
                   <td style="text-align: right;">

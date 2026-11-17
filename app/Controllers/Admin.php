@@ -33,6 +33,9 @@ class Admin extends BaseController
      */
     public function overview(): string
     {
+        // Safe check to detect any ongoing sessions in overtime
+        $this->bookingModel->detectOvertimeBookings();
+
         $totalRooms = $this->roomModel->countAllResults();
         $totalUsers = $this->userModel->where('is_active', 1)->countAllResults();
         $bookingsToday = $this->bookingModel->getBookingsTodayCount();
@@ -243,18 +246,114 @@ class Admin extends BaseController
      */
     public function bookings(): string
     {
+        // Safe check to detect overtime bookings and flag affected next bookings
+        $this->bookingModel->detectOvertimeBookings();
+
         $statusFilter = $this->request->getGet('status');
         $search = $this->request->getGet('q');
 
-        $bookings = $this->bookingModel->getAllForAdmin($statusFilter, $search);
+        // Always fetch all bookings to populate the moderation view, enabling seamless instantaneous client-side filter switching
+        $bookings = $this->bookingModel->getAllForAdmin(null, $search);
+        $availableRooms = $this->roomModel->where('status !=', 'Maintenance')->orderBy('room_name', 'ASC')->findAll();
 
         return view('admin/bookings', [
-            'title'        => 'Manage Bookings - CPC RoomFinder | Admin Portal',
-            'activeNav'    => 'bookings',
-            'bookings'     => $bookings,
-            'statusFilter' => $statusFilter,
-            'search'       => $search,
+            'title'            => 'Manage Bookings - CPC RoomFinder | Admin Portal',
+            'activeNav'        => 'bookings',
+            'bookings'         => $bookings,
+            'availableRooms'   => $availableRooms,
+            'statusFilter'     => $statusFilter,
+            'search'           => $search,
         ]);
+    }
+
+    /**
+     * Force Vacate Room by Administrator (POST /admin/bookings/vacate/(:num))
+     */
+    public function forceVacate(int $id)
+    {
+        $adminId = (int) session()->get('user_id');
+        $result = $this->bookingModel->confirmRoomVacated($id, $adminId, true);
+
+        if ($result['success']) {
+            return redirect()->to(base_url('admin/bookings'))->with('success', $result['message']);
+        }
+
+        return redirect()->to(base_url('admin/bookings'))->with('error', $result['message']);
+    }
+
+    /**
+     * Complete Booking Return / Final Turnover (POST /admin/bookings/complete-return/(:num))
+     */
+    public function completeReturn(int $id)
+    {
+        $adminId = (int) session()->get('user_id');
+        $result = $this->bookingModel->completeBookingReturn($id, $adminId);
+
+        if ($result['success']) {
+            return redirect()->to(base_url('admin/bookings'))->with('success', $result['message']);
+        }
+
+        return redirect()->to(base_url('admin/bookings'))->with('error', $result['message']);
+    }
+
+    /**
+     * Approve Extension Request (POST /admin/bookings/approve-extension/(:num))
+     */
+    public function approveExtension(int $id)
+    {
+        $adminId = (int) session()->get('user_id');
+        $result = $this->bookingModel->approveExtension($id, $adminId);
+
+        if ($result['success']) {
+            return redirect()->to(base_url('admin/bookings'))->with('success', $result['message']);
+        }
+
+        return redirect()->to(base_url('admin/bookings'))->with('error', $result['message']);
+    }
+
+    /**
+     * Reject Extension Request (POST /admin/bookings/reject-extension/(:num))
+     */
+    public function rejectExtension(int $id)
+    {
+        $adminId = (int) session()->get('user_id');
+        $reason = (string) $this->request->getPost('reason');
+        $result = $this->bookingModel->rejectExtension($id, $adminId, $reason);
+
+        if ($result['success']) {
+            return redirect()->to(base_url('admin/bookings'))->with('success', $result['message']);
+        }
+
+        return redirect()->to(base_url('admin/bookings'))->with('error', $result['message']);
+    }
+
+    /**
+     * Reassign an affected booking to an alternate room (POST /admin/bookings/reassign/(:num))
+     */
+    public function reassignBooking(int $id)
+    {
+        $adminId = (int) session()->get('user_id');
+        $newRoomId = (int) $this->request->getPost('new_room_id');
+
+        if (!$newRoomId) {
+            return redirect()->to(base_url('admin/bookings'))->with('error', 'Please select a valid destination classroom.');
+        }
+
+        $result = $this->bookingModel->reassignRoom($id, $newRoomId, $adminId);
+
+        if ($result['success']) {
+            return redirect()->to(base_url('admin/bookings'))->with('success', $result['message']);
+        }
+
+        return redirect()->to(base_url('admin/bookings'))->with('error', $result['message']);
+    }
+
+    /**
+     * Deprecated: Room Transition Buffer Setting (POST /admin/settings/buffer)
+     */
+    public function updateTransitionBuffer()
+    {
+        return redirect()->to(base_url('admin/bookings'));
     }
 
     /**

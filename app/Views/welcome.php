@@ -64,13 +64,7 @@
       <a class="btn btn-navy" href="<?= base_url('register') ?>" id="btnHeroCreate">Create Account</a>
     </div>
 
-    <!-- Quick Preview Switcher for Reviewing all Dashboards -->
-    <div class="quick-preview-bar">
-      <span>Quick Preview:</span>
-      <a href="<?= base_url('student/dashboard') ?>" title="View Student Dashboard">Student</a>
-      <a href="<?= base_url('instructor/bookings') ?>" title="View Instructor Dashboard">Instructor</a>
-      <a href="<?= base_url('admin/overview') ?>" title="View Admin Overview">Admin</a>
-    </div>
+   
   </main>
 
   <script src="<?= base_url('assets/js/main.js') ?>"></script>

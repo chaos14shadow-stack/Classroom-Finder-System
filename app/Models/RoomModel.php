@@ -104,31 +104,43 @@ class RoomModel extends Model
     {
         $nowDate = date('Y-m-d');
         $nowTime = date('H:i:s');
+        $nowDateTime = date('Y-m-d H:i:s');
 
+        // 1. Check for active ongoing, overtime, or extension-requested bookings
         $activeBooking = $this->db->table('bookings')
             ->select('bookings.*, users.first_name, users.last_name')
             ->join('users', 'users.id = bookings.user_id', 'left')
             ->where('bookings.room_id', $roomId)
             ->where('bookings.booking_date', $nowDate)
+            ->whereIn('bookings.status', ['approved', 'ongoing', 'overtime', 'extension_requested', 'vacated'])
             ->where('bookings.start_time <=', $nowTime)
-            ->where('bookings.end_time >', $nowTime)
-            ->where('bookings.status', 'approved')
             ->get()
             ->getRowArray();
 
         if ($activeBooking) {
             $instructorName = trim($activeBooking['first_name'] . ' ' . $activeBooking['last_name']);
+            $isOvertime = ($activeBooking['status'] === 'overtime' || ($nowTime > $activeBooking['end_time']));
+            $untilTime = !empty($activeBooking['requested_end_time']) 
+                ? date('g:i A', strtotime($activeBooking['requested_end_time'])) 
+                : date('g:i A', strtotime($activeBooking['end_time']));
+
+            $badgeText = $isOvertime 
+                ? "Occupied by {$instructorName} (Overtime since {$untilTime})"
+                : "Booked by {$instructorName} until {$untilTime}";
+
             return [
                 'is_occupied'     => true,
+                'is_overtime'     => $isOvertime,
                 'instructor_name' => $instructorName,
-                'until'           => date('g:i A', strtotime($activeBooking['end_time'])),
+                'until'           => $untilTime,
                 'purpose'         => $activeBooking['purpose'],
-                'badge_text'      => 'Booked by ' . $instructorName . ' until ' . date('g:i A', strtotime($activeBooking['end_time'])),
+                'badge_text'      => $badgeText,
             ];
         }
 
         return [
             'is_occupied'     => false,
+            'is_overtime'     => false,
             'instructor_name' => null,
             'until'           => null,
             'purpose'         => null,
